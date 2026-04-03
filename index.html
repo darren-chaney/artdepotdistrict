@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Art Depot District — Covington, Tennessee</title>
+  <meta name="description" content="The Art Depot District is Covington's creative hub — art studios, dining, events, and community culture in the heart of Tipton County.">
+  <meta property="og:title" content="Art Depot District — Covington, Tennessee">
+  <meta property="og:description" content="Discover the Art Depot District. Art, food, spirits, and community in Covington, TN.">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+<div id="nav-placeholder"></div>
+
+<!-- ── Hero ────────────────────────────────────────────── -->
+<section class="hero" id="hero">
+  <div class="hero-bg" id="heroBg" style="background-image:url('/images/district/hero.jpg')"></div>
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <p class="hero-welcome">Welcome to the</p>
+    <h1>ART DEPOT DISTRICT</h1>
+    <p class="hero-subtitle" id="heroSubtitle">Explore the creative heart of our community</p>
+    <div class="hero-actions">
+      <a href="/about.html" class="btn btn-teal">Learn More</a>
+      <a href="/businesses.html" class="btn btn-outline-white">Explore Businesses</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Three Feature Cards ──────────────────────────────── -->
+<div class="feature-cards">
+  <a href="/businesses.html" class="feature-card">
+    <div class="feature-card-header red">
+      <span class="feature-card-icon">🏪</span>
+      Local Businesses
+    </div>
+    <div class="feature-card-img">
+      <img src="/images/district/businesses-card.jpg" alt="District businesses" onerror="this.parentElement.innerHTML='<div class=\'feature-card-img-placeholder\'>🏪</div>'">
+    </div>
+    <div class="feature-card-footer">
+      View All Businesses <span>&rsaquo;</span>
+    </div>
+  </a>
+  <a href="/events.html" class="feature-card">
+    <div class="feature-card-header navy">
+      <span class="feature-card-icon">📅</span>
+      Event Calendar
+    </div>
+    <div class="feature-card-img">
+      <img src="/images/district/events-card.jpg" alt="District events" onerror="this.parentElement.innerHTML='<div class=\'feature-card-img-placeholder\'>📅</div>'">
+    </div>
+    <div class="feature-card-footer">
+      View Upcoming Events <span>&rsaquo;</span>
+    </div>
+  </a>
+  <a href="/depot-days.html" class="feature-card">
+    <div class="feature-card-header teal">
+      <span class="feature-card-icon">🎪</span>
+      Depot Days Festival
+    </div>
+    <div class="feature-card-img">
+      <img src="/images/district/depot-days-card.jpg" alt="Depot Days festival" onerror="this.parentElement.innerHTML='<div class=\'feature-card-img-placeholder\'>🎪</div>'">
+    </div>
+    <div class="feature-card-footer">
+      Learn More <span>&rsaquo;</span>
+    </div>
+  </a>
+</div>
+
+<!-- ── Upcoming Events + Car Show Sidebar ───────────────── -->
+<section class="section section-alt">
+  <div class="container">
+    <h2 style="margin-bottom:24px">Upcoming Events</h2>
+    <div class="events-layout">
+
+      <!-- Calendar -->
+      <div>
+        <div class="events-tabs" id="eventsTabs">
+          <div class="events-tab active" data-tab="all">
+            📅 Community Events
+          </div>
+        </div>
+        <div class="events-calendar-wrap">
+          <div class="events-list" id="eventsList">
+            <div class="empty-state"><div class="loading-spinner"></div></div>
+          </div>
+          <div class="events-footer">
+            <a href="/events.html" class="btn btn-primary" style="font-size:.78rem;padding:10px 22px">View Full Calendar &rsaquo;</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Car Show Sidebar -->
+      <div>
+        <div class="carshow-card">
+          <div class="carshow-card-header">Car Show Registration</div>
+          <div class="carshow-card-img">
+            <img src="/images/district/car-show-card.jpg" alt="Depot Days Car Show" onerror="this.parentElement.innerHTML='<div class=\'carshow-card-img-placeholder\'>🚗</div>'">
+          </div>
+          <div class="carshow-card-body">
+            <h3>Register Your Vehicle for the Depot Days Car Show!</h3>
+            <p>All makes, models, and years welcome. Free pre-registration — secure your spot today.</p>
+            <a href="/car-show.html" class="btn btn-red" style="width:100%;justify-content:center">Register Now &rsaquo;</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── Depot Days Banner ─────────────────────────────────── -->
+<div class="depot-days-banner">
+  <div class="depot-days-bg" id="depotDaysBg" style="background-image:url('/images/district/depot-days-banner.jpg')"></div>
+  <div class="depot-days-overlay"></div>
+  <div class="container">
+    <div class="depot-days-content">
+      <div>
+        <div class="depot-days-title" id="depotTitle">Depot Days Festival</div>
+        <p class="depot-days-text" id="depotText">Join us for Depot Days! Live music, food vendors, arts &amp; crafts, and our popular Car Show. Fun for the whole family!</p>
+        <a href="/depot-days.html" class="btn btn-red">Find Out More &rsaquo;</a>
+      </div>
+      <div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Featured Businesses ──────────────────────────────── -->
+<section class="section">
+  <div class="container">
+    <div class="section-header-row">
+      <div>
+        <span class="eyebrow">The District</span>
+        <h2>District Businesses</h2>
+        <div class="divider"></div>
+      </div>
+      <a href="/businesses.html" class="btn btn-outline">View All &rsaquo;</a>
+    </div>
+    <div class="businesses-grid" id="featuredBusinesses">
+      <div class="empty-state" style="grid-column:1/-1"><div class="loading-spinner"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Visit Strip ───────────────────────────────────────── -->
+<section class="section-sm section-alt">
+  <div class="container">
+    <div class="info-grid">
+      <div class="info-block">
+        <h4>Location</h4>
+        <p id="districtAddress">Covington, Tennessee<br>Tipton County</p>
+      </div>
+      <div class="info-block">
+        <h4>Free Parking</h4>
+        <p>Free parking available throughout the district. Additional details posted during events.</p>
+      </div>
+      <div class="info-block">
+        <h4>Contact Us</h4>
+        <p><a href="/contact.html" style="color:var(--red);font-weight:700">Send a message &rsaquo;</a></p>
+      </div>
+      <div class="info-block">
+        <h4>Follow Along</h4>
+        <p><a href="#" id="homeFacebook" style="color:var(--red);font-weight:700">Find us on social media &rsaquo;</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+<div id="chat-placeholder"></div>
+
+<script src="/js/firebase-config.js"></script>
+<script src="/js/layout.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script type="module">
+  import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore }    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getBusinesses, getDepotDays, getSiteConfig, renderBusinessCard, renderEventItem } from '/js/app.js';
+
+  const app = initializeApp(window.__ART_DEPOT_CONFIG);
+  const db  = getFirestore(app);
+  window.__ART_DEPOT_DB = db;
+
+  // Site config
+  getSiteConfig().then(cfg => {
+    if (cfg.heroImage)   document.getElementById('heroBg').style.backgroundImage = `url(${cfg.heroImage})`;
+    if (cfg.heroTagline) document.getElementById('heroSubtitle').textContent = cfg.heroTagline;
+    if (cfg.address)     document.getElementById('districtAddress').innerHTML = cfg.address.replace(/\n/g,'<br>');
+    if (cfg.socials?.facebook) document.getElementById('homeFacebook').href = cfg.socials.facebook;
+
+    // Load events from Google Calendar
+    if (cfg.calendarId && cfg.googleApiKey) {
+      loadEvents(cfg.calendarId, cfg.googleApiKey);
+    } else {
+      document.getElementById('eventsList').innerHTML = '<div class="empty-state">Events calendar coming soon.</div>';
+    }
+  });
+
+  async function loadEvents(calId, apiKey) {
+    const now    = new Date().toISOString();
+    const maxEnd = new Date(Date.now() + 60*24*60*60*1000).toISOString();
+    const url    = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events?key=${apiKey}&timeMin=${now}&timeMax=${maxEnd}&singleEvents=true&orderBy=startTime&maxResults=6`;
+    try {
+      const res  = await fetch(url);
+      const data = await res.json();
+      const el   = document.getElementById('eventsList');
+      if (!data.items?.length) {
+        el.innerHTML = '<div class="empty-state">No upcoming events. Check back soon.</div>';
+        return;
+      }
+      el.innerHTML = data.items.map(renderEventItem).join('');
+    } catch(e) {
+      document.getElementById('eventsList').innerHTML = '<div class="empty-state">Events unavailable right now.</div>';
+    }
+  }
+
+  // Featured businesses
+  getBusinesses({ featuredOnly: true }).then(list => {
+    const el = document.getElementById('featuredBusinesses');
+    if (!list.length) {
+      el.innerHTML = '<div class="empty-state" style="grid-column:1/-1">Businesses coming soon.</div>';
+      return;
+    }
+    el.innerHTML = list.slice(0,3).map(renderBusinessCard).join('');
+  });
+
+  // Depot Days
+  getDepotDays().then(dd => {
+    if (!dd) return;
+    const year = dd.year ? ` ${dd.year}` : '';
+    document.getElementById('depotTitle').textContent = `Depot Days Festival${year}`;
+    if (dd.tagline) document.getElementById('depotText').textContent = dd.tagline;
+    if (dd.bannerImage) document.getElementById('depotDaysBg').style.backgroundImage = `url(${dd.bannerImage})`;
+  });
+</script>
+</body>
+</html>

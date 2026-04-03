@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>District Businesses — Art Depot District</title>
+  <meta name="description" content="Explore the businesses of the Art Depot District in Covington, Tennessee.">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+<div id="nav-placeholder"></div>
+
+<div class="page-header">
+  <div class="container">
+    <span class="eyebrow">The District</span>
+    <h1>Our Businesses</h1>
+    <p>Art studios, craft spirits, vintage finds, dining, agriculture, and more — all within the Art Depot District.</p>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="section-sm section-dark" style="padding:28px 0">
+  <div class="container">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <span style="font-family:var(--font-ui);font-size:0.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-right:8px">Filter:</span>
+      <button class="btn btn-ghost filter-btn active" data-cat="all" style="padding:8px 16px;font-size:0.72rem">All</button>
+      <button class="btn btn-ghost filter-btn" data-cat="art" style="padding:8px 16px;font-size:0.72rem">Art &amp; Studio</button>
+      <button class="btn btn-ghost filter-btn" data-cat="food" style="padding:8px 16px;font-size:0.72rem">Food &amp; Drink</button>
+      <button class="btn btn-ghost filter-btn" data-cat="retail" style="padding:8px 16px;font-size:0.72rem">Retail &amp; Vintage</button>
+      <button class="btn btn-ghost filter-btn" data-cat="agriculture" style="padding:8px 16px;font-size:0.72rem">Agriculture</button>
+      <button class="btn btn-ghost filter-btn" data-cat="services" style="padding:8px 16px;font-size:0.72rem">Services</button>
+    </div>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <div class="businesses-grid" id="businessGrid">
+      <div class="empty-state" style="grid-column:1/-1"><div class="loading-spinner"></div></div>
+    </div>
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+<div id="chat-placeholder"></div>
+
+<script src="/js/layout.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script type="module">
+  import { getBusinesses, renderBusinessCard, slugify } from '/js/app.js';
+
+  let allBusinesses = [];
+
+  getBusinesses().then(list => {
+    allBusinesses = list;
+    renderGrid('all');
+  });
+
+  function renderGrid(cat) {
+    const el = document.getElementById('businessGrid');
+    const filtered = cat === 'all' ? allBusinesses : allBusinesses.filter(b => {
+      return (b.category||'').toLowerCase().includes(cat);
+    });
+    if (!filtered.length) {
+      el.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No businesses in this category yet.</div>';
+      return;
+    }
+    el.innerHTML = filtered.map(renderBusinessCard).join('');
+  }
+
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active','btn-primary'));
+      document.querySelectorAll('.filter-btn').forEach(b => { if(!b.classList.contains('active')) b.classList.add('btn-ghost'); });
+      btn.classList.add('active');
+      btn.classList.remove('btn-ghost');
+      btn.classList.add('btn-primary');
+      renderGrid(btn.dataset.cat);
+    });
+  });
+</script>
+</body>
+</html>

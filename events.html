@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Events — Art Depot District</title>
+  <meta name="description" content="Upcoming events at the Art Depot District in Covington, Tennessee.">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+<div id="nav-placeholder"></div>
+
+<div class="page-header">
+  <div class="container">
+    <span class="eyebrow">What's Happening</span>
+    <h1>District Events</h1>
+    <p>Stay up to date with everything happening in the Art Depot District.</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <div id="eventsContainer">
+      <div class="empty-state"><div class="loading-spinner"></div></div>
+    </div>
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+<div id="chat-placeholder"></div>
+
+<script src="/js/layout.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script type="module">
+  import { getSiteConfig, renderEventItem } from '/js/app.js';
+
+  const container = document.getElementById('eventsContainer');
+
+  getSiteConfig().then(async cfg => {
+    if (!cfg.calendarId || !cfg.googleApiKey) {
+      container.innerHTML = '<div class="empty-state">Events calendar coming soon.</div>';
+      return;
+    }
+
+    const now    = new Date().toISOString();
+    const maxEnd = new Date(Date.now() + 90*24*60*60*1000).toISOString();
+    const url    = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cfg.calendarId)}/events?key=${cfg.googleApiKey}&timeMin=${now}&timeMax=${maxEnd}&singleEvents=true&orderBy=startTime&maxResults=40`;
+
+    try {
+      const res  = await fetch(url);
+      const data = await res.json();
+
+      if (!data.items?.length) {
+        container.innerHTML = '<div class="empty-state">No upcoming events. Check back soon.</div>';
+        return;
+      }
+
+      // Group by month
+      const grouped = {};
+      data.items.forEach(ev => {
+        const dateStr = ev.start.date || ev.start.dateTime?.substring(0,10);
+        const d       = new Date(dateStr + 'T00:00:00');
+        const key     = d.toLocaleDateString('en-US',{ month:'long', year:'numeric' });
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(ev);
+      });
+
+      let html = '';
+      for (const [month, events] of Object.entries(grouped)) {
+        html += `
+          <div style="margin-bottom:48px">
+            <h3 style="font-size:1.1rem;color:var(--text-muted);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">${month}</h3>
+            <div class="events-list">${events.map(renderEventItem).join('')}</div>
+          </div>`;
+      }
+      container.innerHTML = html;
+    } catch(e) {
+      container.innerHTML = '<div class="empty-state">Events unavailable right now. Please check back later.</div>';
+    }
+  });
+</script>
+</body>
+</html>

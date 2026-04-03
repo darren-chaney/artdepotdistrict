@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — Art Depot District</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="nav-placeholder"></div>
+<div class="page-header">
+  <div class="container">
+    <span class="eyebrow">Get in Touch</span>
+    <h1>Contact Us</h1>
+    <p>Questions about the district, events, or getting your business listed? We'd love to hear from you.</p>
+  </div>
+</div>
+<section class="section">
+  <div class="container" style="display:grid;grid-template-columns:1fr 400px;gap:64px;align-items:start">
+    <div>
+      <h2 style="font-size:2rem;margin-bottom:8px">Send a Message</h2>
+      <div class="divider"></div>
+      <div class="form-success" id="contactSuccess" style="margin-bottom:24px">
+        <h3>Message Sent!</h3>
+        <p>Thanks for reaching out. We'll get back to you soon.</p>
+      </div>
+      <form id="contactForm" novalidate>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="cName">Name *</label>
+            <input class="form-input" type="text" id="cName" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cEmail">Email *</label>
+            <input class="form-input" type="email" id="cEmail" required>
+          </div>
+          <div class="form-group full">
+            <label class="form-label" for="cSubject">Subject</label>
+            <select class="form-select" id="cSubject">
+              <option value="">Select...</option>
+              <option>General Question</option>
+              <option>List My Business</option>
+              <option>Event Inquiry</option>
+              <option>Car Show Question</option>
+              <option>Sponsorship Opportunity</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label class="form-label" for="cMessage">Message *</label>
+            <textarea class="form-textarea" id="cMessage" required></textarea>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-24" id="cSubmit">Send Message</button>
+        <div class="form-error-msg" id="cError" style="display:none;margin-top:12px">Please fill in all required fields.</div>
+      </form>
+    </div>
+    <div>
+      <div class="biz-info-card" style="position:sticky;top:calc(var(--nav-height)+20px)">
+        <h5 style="margin-bottom:20px">District Info</h5>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div>
+            <div class="form-label" style="margin-bottom:4px">Location</div>
+            <p style="font-size:.9rem;color:var(--text-secondary)">Covington, Tennessee<br>Tipton County</p>
+          </div>
+          <div>
+            <div class="form-label" style="margin-bottom:4px">Also Known As</div>
+            <p style="font-size:.9rem;color:var(--text-secondary)">Artesian Business District<br>(official city designation)</p>
+          </div>
+        </div>
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px">
+          <a href="/businesses.html" class="btn btn-ghost" style="justify-content:center">View Businesses</a>
+          <a href="/events.html" class="btn btn-ghost" style="justify-content:center">Events Calendar</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<div id="footer-placeholder"></div>
+<div id="chat-placeholder"></div>
+<script src="/js/layout.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const db = window.__ART_DEPOT_DB;
+
+  document.getElementById('contactForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const name    = document.getElementById('cName').value.trim();
+    const email   = document.getElementById('cEmail').value.trim();
+    const message = document.getElementById('cMessage').value.trim();
+    if (!name || !email || !message) {
+      document.getElementById('cError').style.display = 'block';
+      return;
+    }
+    document.getElementById('cError').style.display = 'none';
+    document.getElementById('cSubmit').textContent = 'Sending...';
+    document.getElementById('cSubmit').disabled = true;
+    try {
+      await addDoc(collection(db,'contact_messages'), {
+        name, email,
+        subject: document.getElementById('cSubject').value,
+        message,
+        submittedAt: serverTimestamp()
+      });
+      document.getElementById('contactForm').style.display = 'none';
+      document.getElementById('contactSuccess').style.display = 'block';
+    } catch(err) {
+      document.getElementById('cError').textContent = 'Failed to send. Please try again.';
+      document.getElementById('cError').style.display = 'block';
+      document.getElementById('cSubmit').textContent = 'Send Message';
+      document.getElementById('cSubmit').disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

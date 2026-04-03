@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Car Show Registration — Depot Days — Art Depot District</title>
+  <meta name="description" content="Pre-register your vehicle for the Depot Days Car Show in Covington, Tennessee.">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+<div id="nav-placeholder"></div>
+
+<div class="page-header">
+  <div class="container">
+    <span class="eyebrow">Depot Days Festival</span>
+    <h1>Car Show<br>Registration</h1>
+    <p>Pre-register your vehicle for the Depot Days Car Show. All makes, models, and years are welcome.</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container" style="display:grid;grid-template-columns:1fr 380px;gap:64px;align-items:start">
+
+    <!-- Registration Form -->
+    <div>
+      <span class="eyebrow">Pre-Registration</span>
+      <h2 style="font-size:2rem;margin-bottom:8px">Register Your Vehicle</h2>
+      <div class="divider"></div>
+      <p style="margin-bottom:40px">Fill out the form below to pre-register. No payment required — registration is free. You'll receive a confirmation once submitted.</p>
+
+      <!-- Success Message -->
+      <div class="form-success" id="formSuccess">
+        <h3>You're Registered! 🏆</h3>
+        <p>Thanks for pre-registering for the Depot Days Car Show. We'll see you there!</p>
+        <p style="margin-top:12px;font-size:.9rem">Questions? <a href="/contact.html" style="color:var(--accent)">Contact us</a></p>
+      </div>
+
+      <form id="carShowForm" novalidate>
+        <div class="form-grid">
+
+          <!-- Contact Info -->
+          <div class="form-group">
+            <label class="form-label" for="firstName">First Name *</label>
+            <input class="form-input" type="text" id="firstName" name="firstName" required>
+            <span class="form-error-msg" id="err-firstName">Required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="lastName">Last Name *</label>
+            <input class="form-input" type="text" id="lastName" name="lastName" required>
+            <span class="form-error-msg" id="err-lastName">Required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="email">Email Address *</label>
+            <input class="form-input" type="email" id="email" name="email" required>
+            <span class="form-error-msg" id="err-email">Valid email required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="phone">Phone Number</label>
+            <input class="form-input" type="tel" id="phone" name="phone">
+          </div>
+
+          <!-- Vehicle Info -->
+          <div class="form-group">
+            <label class="form-label" for="vehicleYear">Vehicle Year *</label>
+            <input class="form-input" type="number" id="vehicleYear" name="vehicleYear" min="1900" max="2030" required placeholder="e.g. 1969">
+            <span class="form-error-msg" id="err-vehicleYear">Required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="vehicleMake">Make *</label>
+            <input class="form-input" type="text" id="vehicleMake" name="vehicleMake" required placeholder="e.g. Chevrolet">
+            <span class="form-error-msg" id="err-vehicleMake">Required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="vehicleModel">Model *</label>
+            <input class="form-input" type="text" id="vehicleModel" name="vehicleModel" required placeholder="e.g. Camaro">
+            <span class="form-error-msg" id="err-vehicleModel">Required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="vehicleClass">Vehicle Class</label>
+            <select class="form-select" id="vehicleClass" name="vehicleClass">
+              <option value="">Select a class...</option>
+              <option>Classic (Pre-1980)</option>
+              <option>Muscle Car</option>
+              <option>Street Rod / Custom</option>
+              <option>Import / Tuner</option>
+              <option>Trucks &amp; SUVs</option>
+              <option>Modern Performance</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="vehicleColor">Color</label>
+            <input class="form-input" type="text" id="vehicleColor" name="vehicleColor" placeholder="e.g. Candy Apple Red">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="vehicleEngine">Engine (optional)</label>
+            <input class="form-input" type="text" id="vehicleEngine" name="vehicleEngine" placeholder="e.g. 454 Big Block">
+          </div>
+
+          <div class="form-group full">
+            <label class="form-label" for="notes">Notes / Additional Info</label>
+            <textarea class="form-textarea" id="notes" name="notes" placeholder="Tell us anything special about your vehicle, questions, etc."></textarea>
+          </div>
+
+          <div class="form-group full">
+            <div class="form-checkbox-group">
+              <input type="checkbox" id="acknowledge" required>
+              <label class="form-checkbox-label" for="acknowledge">
+                I understand this is a pre-registration and does not guarantee a spot until confirmed. I agree to follow all car show rules and conduct myself respectfully. *
+              </label>
+            </div>
+            <span class="form-error-msg" id="err-acknowledge">You must acknowledge this to register</span>
+          </div>
+
+        </div>
+
+        <div style="margin-top:32px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+          <button type="submit" class="btn btn-primary" id="submitBtn">
+            <span id="submitText">Submit Registration</span>
+            <span id="submitSpinner" style="display:none"><div class="loading-spinner" style="width:16px;height:16px;border-width:2px"></div></span>
+          </button>
+          <p style="font-size:.85rem;color:var(--text-muted)">* Required fields</p>
+        </div>
+        <div class="form-error-msg" id="formError" style="display:none;margin-top:12px;font-size:.9rem">Something went wrong. Please try again.</div>
+      </form>
+    </div>
+
+    <!-- Sidebar Info -->
+    <aside>
+      <div class="biz-info-card" style="position:sticky;top:calc(var(--nav-height) + 20px)">
+        <h5 style="margin-bottom:20px">Car Show Info</h5>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div>
+            <div class="form-label" style="margin-bottom:4px">Date &amp; Time</div>
+            <p style="font-size:.9rem;color:var(--text-secondary)" id="csDate">Date to be announced</p>
+          </div>
+          <div>
+            <div class="form-label" style="margin-bottom:4px">Location</div>
+            <p style="font-size:.9rem;color:var(--text-secondary)">Art Depot District<br>Covington, Tennessee</p>
+          </div>
+          <div>
+            <div class="form-label" style="margin-bottom:4px">Entry Fee</div>
+            <p style="font-size:.9rem;color:var(--text-secondary)" id="csEntry">Free pre-registration. Day-of entry fees TBA.</p>
+          </div>
+          <div>
+            <div class="form-label" style="margin-bottom:4px">All Welcome</div>
+            <p style="font-size:.9rem;color:var(--text-secondary)">All makes, models, and years welcome. Street rods, muscle cars, classics, imports, trucks — bring it.</p>
+          </div>
+        </div>
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+          <a href="/depot-days.html" class="btn btn-ghost" style="width:100%;justify-content:center">&larr; Back to Depot Days</a>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+<div id="chat-placeholder"></div>
+
+<script src="/js/layout.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script type="module">
+  import { submitCarShowRegistration, getDepotDays } from '/js/app.js';
+
+  // Load car show details
+  getDepotDays().then(dd => {
+    if (!dd) return;
+    if (dd.carShowDate)  document.getElementById('csDate').textContent = dd.carShowDate;
+    if (dd.carShowEntry) document.getElementById('csEntry').textContent = dd.carShowEntry;
+  });
+
+  const form     = document.getElementById('carShowForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const submitText = document.getElementById('submitText');
+  const submitSpinner = document.getElementById('submitSpinner');
+
+  function showError(fieldId, show) {
+    const el = document.getElementById(`err-${fieldId}`);
+    if (el) el.style.display = show ? 'block' : 'none';
+  }
+
+  function validate() {
+    let valid = true;
+    const required = ['firstName','lastName','email','vehicleYear','vehicleMake','vehicleModel'];
+    required.forEach(f => {
+      const el = document.getElementById(f);
+      const empty = !el.value.trim();
+      showError(f, empty);
+      if (empty) valid = false;
+    });
+    const email = document.getElementById('email');
+    if (email.value && !/\S+@\S+\.\S+/.test(email.value)) {
+      showError('email', true);
+      valid = false;
+    }
+    const ack = document.getElementById('acknowledge');
+    showError('acknowledge', !ack.checked);
+    if (!ack.checked) valid = false;
+    return valid;
+  }
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    submitText.style.display   = 'none';
+    submitSpinner.style.display = 'inline-flex';
+    submitBtn.disabled = true;
+    document.getElementById('formError').style.display = 'none';
+
+    const data = {
+      firstName:     document.getElementById('firstName').value.trim(),
+      lastName:      document.getElementById('lastName').value.trim(),
+      email:         document.getElementById('email').value.trim(),
+      phone:         document.getElementById('phone').value.trim(),
+      vehicleYear:   document.getElementById('vehicleYear').value.trim(),
+      vehicleMake:   document.getElementById('vehicleMake').value.trim(),
+      vehicleModel:  document.getElementById('vehicleModel').value.trim(),
+      vehicleClass:  document.getElementById('vehicleClass').value,
+      vehicleColor:  document.getElementById('vehicleColor').value.trim(),
+      vehicleEngine: document.getElementById('vehicleEngine').value.trim(),
+      notes:         document.getElementById('notes').value.trim(),
+    };
+
+    const result = await submitCarShowRegistration(data);
+
+    if (result.success) {
+      form.style.display = 'none';
+      document.getElementById('formSuccess').style.display = 'block';
+    } else {
+      document.getElementById('formError').style.display = 'block';
+      submitText.style.display    = 'inline';
+      submitSpinner.style.display = 'none';
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

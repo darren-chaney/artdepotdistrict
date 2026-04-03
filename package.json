@@ -1,0 +1,14 @@
+{
+  "name": "art-depot-district",
+  "version": "1.0.0",
+  "description": "Art Depot District Website — Covington, Tennessee",
+  "scripts": {
+    "deploy": "firebase deploy --only hosting",
+    "deploy:functions": "cd functions && npm install && cd .. && firebase deploy --only functions",
+    "deploy:all": "cd functions && npm install && cd .. && firebase deploy",
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

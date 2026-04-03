@@ -1,0 +1,124 @@
+// Art Depot District — Shared Layout
+// Nav and footer injected on every page
+
+const NAV_HTML = `
+<nav class="nav" id="mainNav">
+  <div class="nav-inner">
+    <a href="/index.html" class="nav-logo-wrap">
+      <span class="nav-logo">Art Depot District</span>
+      <span class="nav-logo-sub">Explore &bull; Create &bull; Discover</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="/index.html">Home</a></li>
+      <li><a href="/businesses.html">Businesses</a></li>
+      <li><a href="/events.html">Events</a></li>
+      <li><a href="/depot-days.html">Depot Days</a></li>
+      <li><a href="/car-show.html" class="nav-highlight">Car Show</a></li>
+    </ul>
+    <div class="nav-social">
+      <a href="#" id="navFacebook" aria-label="Facebook" target="_blank">f</a>
+      <a href="#" id="navInstagram" aria-label="Instagram" target="_blank">in</a>
+      <a href="/contact.html" aria-label="Contact">&#x2709;</a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+<div class="nav-mobile" id="mobileMenu">
+  <ul>
+    <li><a href="/index.html">Home</a></li>
+    <li><a href="/businesses.html">Businesses</a></li>
+    <li><a href="/events.html">Events</a></li>
+    <li><a href="/depot-days.html">Depot Days</a></li>
+    <li><a href="/car-show.html">Car Show Registration</a></li>
+    <li><a href="/visit.html">Visit &amp; Directions</a></li>
+    <li><a href="/about.html">About the District</a></li>
+    <li><a href="/contact.html">Contact</a></li>
+  </ul>
+</div>`;
+
+const FOOTER_HTML = `
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="footer-brand-logo">Art Depot District</div>
+        <div class="footer-brand-sub">Explore &bull; Create &bull; Discover</div>
+        <p>A destination for art, community, food, and culture in the heart of Covington, Tennessee.</p>
+        <div class="footer-social">
+          <a href="#" id="footerFacebook" target="_blank" aria-label="Facebook">F</a>
+          <a href="#" id="footerInstagram" target="_blank" aria-label="Instagram">IG</a>
+        </div>
+        <p style="margin-top:14px;font-size:.74rem;color:rgba(255,255,255,.28)">Powered by Google Analytics</p>
+      </div>
+      <div class="footer-col">
+        <h5>Explore</h5>
+        <ul class="footer-links">
+          <li><a href="/businesses.html">District Businesses</a></li>
+          <li><a href="/events.html">Events Calendar</a></li>
+          <li><a href="/depot-days.html">Depot Days Festival</a></li>
+          <li><a href="/car-show.html">Car Show</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>District</h5>
+        <ul class="footer-links">
+          <li><a href="/about.html">About</a></li>
+          <li><a href="/visit.html">Visit &amp; Directions</a></li>
+          <li><a href="/contact.html">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; ${new Date().getFullYear()} Art Depot District &mdash; Covington, Tennessee</p>
+      <div class="footer-bottom-links">
+        <a href="/contact.html">Contact</a>
+        <a href="#">Privacy Policy</a>
+      </div>
+    </div>
+  </div>
+</footer>`;
+
+function injectLayout() {
+  const navEl    = document.getElementById('nav-placeholder');
+  const footerEl = document.getElementById('footer-placeholder');
+  if (navEl)    navEl.innerHTML    = NAV_HTML;
+  if (footerEl) footerEl.innerHTML = FOOTER_HTML;
+
+  // Hamburger
+  document.addEventListener('click', e => {
+    const btn  = e.target.closest('#hamburger');
+    const menu = document.getElementById('mobileMenu');
+    if (!menu) return;
+    if (btn) menu.classList.toggle('open');
+    else if (!e.target.closest('.nav-mobile')) menu.classList.remove('open');
+  });
+
+  // Active link
+  const path = window.location.pathname;
+  document.querySelectorAll('.nav-links a, .nav-mobile a').forEach(a => {
+    const href = a.getAttribute('href');
+    if (href === path || (path === '/' && href === '/index.html')) {
+      a.classList.add('active');
+    }
+  });
+
+  // Inject social links from site config if available
+  if (window.__ART_DEPOT_DB) {
+    import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js').then(({ doc, getDoc }) => {
+      getDoc(doc(window.__ART_DEPOT_DB, 'site_config', 'main')).then(snap => {
+        if (!snap.exists()) return;
+        const cfg = snap.data();
+        if (cfg.socials?.facebook)  { document.querySelectorAll('#navFacebook,#footerFacebook').forEach(a => a.href = cfg.socials.facebook); }
+        if (cfg.socials?.instagram) { document.querySelectorAll('#navInstagram,#footerInstagram').forEach(a => a.href = cfg.socials.instagram); }
+      });
+    });
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', injectLayout);
+} else {
+  injectLayout();
+}

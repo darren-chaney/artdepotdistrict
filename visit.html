@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visit — Art Depot District</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="nav-placeholder"></div>
+<div class="page-header">
+  <div class="container">
+    <span class="eyebrow">Plan Your Visit</span>
+    <h1>Visit the District</h1>
+    <p>Find us in Covington, Tennessee. Free parking, easy access, and plenty to explore.</p>
+  </div>
+</div>
+<section class="section">
+  <div class="container">
+    <div class="info-grid" style="margin-bottom:48px">
+      <div class="info-block">
+        <h4>Address</h4>
+        <p id="visitAddress">Art Depot District<br>Covington, Tennessee<br>Tipton County</p>
+      </div>
+      <div class="info-block">
+        <h4>Parking</h4>
+        <p>Free parking is available throughout the district. During events, additional overflow parking details are posted on our events page.</p>
+      </div>
+      <div class="info-block">
+        <h4>Hours</h4>
+        <p>District businesses maintain their own hours. Check individual business pages for specific times. Depot Days and events may have their own schedules.</p>
+      </div>
+      <div class="info-block">
+        <h4>Getting Here</h4>
+        <p>Located in the heart of Covington, TN. Easily accessible from US-51 and downtown Covington.</p>
+      </div>
+    </div>
+    <iframe
+      class="map-embed"
+      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3210!2d-89.6445!3d35.5673!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x887ef0!2sCovington%2C+TN!5e0!3m2!1sen!2sus!4v1"
+      allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+      title="Art Depot District Map">
+    </iframe>
+  </div>
+</section>
+<div id="footer-placeholder"></div>
+<div id="chat-placeholder"></div>
+<script src="/js/layout.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script type="module">
+  import { getSiteConfig } from '/js/app.js';
+  getSiteConfig().then(cfg => {
+    if (cfg.address) document.getElementById('visitAddress').innerHTML = cfg.address.replace(/\n/g,'<br>');
+  });
+</script>
+</body>
+</html>

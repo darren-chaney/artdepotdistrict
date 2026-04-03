@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Art Depot District</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    body { overflow-x: hidden; }
+    .admin-wrap { min-height: 100vh; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 16px; margin-bottom: 32px; }
+    .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px 24px; }
+    .stat-num { font-family: var(--font-display); font-size: 2.4rem; font-weight: 700; color: var(--accent); line-height: 1; }
+    .stat-label { font-family: var(--font-ui); font-size: 0.72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-top: 6px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+    .form-row.full { grid-template-columns: 1fr; }
+    .toggle-wrap { display: flex; align-items: center; gap: 10px; }
+    .toggle { position: relative; width: 40px; height: 22px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; inset: 0; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 11px; cursor: pointer; transition: background .2s; }
+    .toggle-slider:before { content:''; position:absolute; width:16px; height:16px; left:2px; top:2px; background: var(--text-muted); border-radius:50%; transition: transform .2s, background .2s; }
+    .toggle input:checked + .toggle-slider { background: var(--accent-dim); border-color: var(--accent-border); }
+    .toggle input:checked + .toggle-slider:before { transform: translateX(18px); background: var(--accent); }
+    .gallery-preview { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .gallery-thumb { width: 72px; height: 72px; object-fit: cover; border-radius: var(--radius); border: 1px solid var(--border); }
+    .gallery-rm { display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: var(--radius); border: 1px dashed var(--border); cursor: pointer; color: var(--text-muted); font-size: 1.2rem; background: var(--bg-surface); }
+    .gallery-rm:hover { border-color: var(--accent-border); color: var(--accent); }
+    .export-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+    .reg-detail { font-size: .85rem; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div class="admin-login" id="loginScreen">
+  <div class="admin-login-box">
+    <h2>Admin Login</h2>
+    <p>Art Depot District</p>
+    <div style="display:flex;flex-direction:column;gap:14px;text-align:left">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="loginEmail">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" id="loginPassword" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="form-error-msg" id="loginError" style="display:none">Invalid email or password.</div>
+      <button class="btn btn-primary" onclick="doLogin()" style="margin-top:8px">Sign In</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin App (hidden until logged in) -->
+<div class="admin-wrap" id="adminApp" style="display:none">
+  <aside class="admin-sidebar">
+    <div class="admin-logo">Art Depot District<span>Admin Console</span></div>
+    <div class="admin-nav-item active" data-panel="dashboard">
+      <span class="admin-nav-icon">📊</span> Dashboard
+    </div>
+    <div class="admin-nav-item" data-panel="businesses">
+      <span class="admin-nav-icon">🏢</span> Businesses
+    </div>
+    <div class="admin-nav-item" data-panel="registrations">
+      <span class="admin-nav-icon">🚗</span> Car Show Regs
+    </div>
+    <div class="admin-nav-item" data-panel="depotdays">
+      <span class="admin-nav-icon">🎪</span> Depot Days
+    </div>
+    <div class="admin-nav-item" data-panel="faqs">
+      <span class="admin-nav-icon">💬</span> FAQs / AI Seeds
+    </div>
+    <div class="admin-nav-item" data-panel="chatlogs">
+      <span class="admin-nav-icon">📝</span> Chat Logs
+    </div>
+    <div class="admin-nav-item" data-panel="config">
+      <span class="admin-nav-icon">⚙️</span> Site Config
+    </div>
+    <div style="margin-top:auto;padding:16px 20px;border-top:1px solid var(--border)">
+      <button class="admin-btn-sm danger" onclick="doLogout()" style="width:100%">Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+
+    <!-- Dashboard -->
+    <div class="admin-panel active" id="panel-dashboard">
+      <div class="admin-header"><h2>Dashboard</h2></div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-num" id="statBiz">—</div><div class="stat-label">Businesses</div></div>
+        <div class="stat-card"><div class="stat-num" id="statRegs">—</div><div class="stat-label">Car Show Regs</div></div>
+        <div class="stat-card"><div class="stat-num" id="statFaqs">—</div><div class="stat-label">FAQ Entries</div></div>
+        <div class="stat-card"><div class="stat-num" id="statChats">—</div><div class="stat-label">Chat Logs</div></div>
+      </div>
+      <div class="admin-card">
+        <h4 style="font-size:1.1rem;margin-bottom:16px">Quick Links</h4>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <a href="/index.html" target="_blank" class="btn btn-ghost" style="font-size:.78rem">View Public Site &rarr;</a>
+          <a href="/car-show.html" target="_blank" class="btn btn-ghost" style="font-size:.78rem">Car Show Page &rarr;</a>
+          <a href="/depot-days.html" target="_blank" class="btn btn-ghost" style="font-size:.78rem">Depot Days Page &rarr;</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Businesses -->
+    <div class="admin-panel" id="panel-businesses">
+      <div class="admin-header">
+        <h2>Businesses</h2>
+        <button class="btn btn-primary" onclick="openBizModal(null)">+ Add Business</button>
+      </div>
+      <div class="admin-card" style="padding:0;overflow:hidden">
+        <table class="admin-table" id="bizTable">
+          <thead>
+            <tr>
+              <th>Name</th><th>Category</th><th>Status</th><th>Featured</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="bizTbody"><tr><td colspan="5" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Car Show Registrations -->
+    <div class="admin-panel" id="panel-registrations">
+      <div class="admin-header"><h2>Car Show Registrations</h2></div>
+      <div class="export-bar">
+        <button class="btn btn-ghost" onclick="exportCSV()" style="font-size:.78rem">Export CSV</button>
+        <span id="regCount" style="font-family:var(--font-ui);font-size:.8rem;color:var(--text-muted)"></span>
+      </div>
+      <div class="admin-card" style="padding:0;overflow:hidden">
+        <table class="admin-table" id="regTable">
+          <thead>
+            <tr><th>Name</th><th>Vehicle</th><th>Class</th><th>Contact</th><th>Date</th></tr>
+          </thead>
+          <tbody id="regTbody"><tr><td colspan="5" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Depot Days -->
+    <div class="admin-panel" id="panel-depotdays">
+      <div class="admin-header"><h2>Depot Days</h2></div>
+      <div class="admin-card">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Year</label>
+            <input class="form-input" type="text" id="ddYear" placeholder="2025">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Car Show Date</label>
+            <input class="form-input" type="text" id="ddCarShowDate" placeholder="e.g. September 13, 2025">
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">Tagline</label>
+            <input class="form-input" type="text" id="ddTagline">
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">Overview (shown on Depot Days page)</label>
+            <textarea class="form-textarea" id="ddOverview"></textarea>
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">Banner Image URL</label>
+            <input class="form-input" type="text" id="ddBanner" placeholder="https://...">
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">Vendors (one per line)</label>
+            <textarea class="form-textarea" id="ddVendors" placeholder="Vendor Name&#10;Another Vendor"></textarea>
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">Sponsors (one per line)</label>
+            <textarea class="form-textarea" id="ddSponsors" placeholder="Sponsor Name&#10;Another Sponsor"></textarea>
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">Car Show Entry Info</label>
+            <input class="form-input" type="text" id="ddCarEntry" placeholder="Free pre-registration. Day-of entry $10.">
+          </div>
+        </div>
+        <button class="btn btn-primary mt-24" onclick="saveDepotDays()">Save Depot Days</button>
+        <span id="ddSaveMsg" style="margin-left:16px;font-size:.85rem;color:var(--accent);display:none">Saved!</span>
+      </div>
+    </div>
+
+    <!-- FAQs / AI Seeds -->
+    <div class="admin-panel" id="panel-faqs">
+      <div class="admin-header">
+        <h2>FAQs &amp; AI Seeds</h2>
+        <button class="btn btn-primary" onclick="openFaqModal(null)">+ Add FAQ</button>
+      </div>
+      <p style="margin-bottom:24px;font-size:.95rem">These FAQs are used to seed the AI assistant's knowledge base. Add common questions and answers here to improve chat responses.</p>
+      <div class="admin-card" style="padding:0;overflow:hidden">
+        <table class="admin-table">
+          <thead><tr><th>Question</th><th>Category</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="faqTbody"><tr><td colspan="4" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Chat Logs -->
+    <div class="admin-panel" id="panel-chatlogs">
+      <div class="admin-header"><h2>Chat Logs</h2></div>
+      <p style="margin-bottom:24px;font-size:.95rem">Review what visitors are asking. Use unresolved questions to add new FAQs and improve the AI assistant.</p>
+      <div class="admin-card" style="padding:0;overflow:hidden">
+        <table class="admin-table">
+          <thead><tr><th>Question</th><th>Answer Preview</th><th>Time</th></tr></thead>
+          <tbody id="chatTbody"><tr><td colspan="3" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Site Config -->
+    <div class="admin-panel" id="panel-config">
+      <div class="admin-header"><h2>Site Config</h2></div>
+      <div class="admin-card">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">District Name</label>
+            <input class="form-input" type="text" id="cfgName" value="Art Depot District">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input class="form-input" type="tel" id="cfgPhone">
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">Address (use line breaks)</label>
+            <textarea class="form-textarea" id="cfgAddress" style="min-height:80px"></textarea>
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">Hero Tagline</label>
+            <input class="form-input" type="text" id="cfgTagline">
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">Hero Image URL</label>
+            <input class="form-input" type="text" id="cfgHeroImage" placeholder="https://...">
+          </div>
+        </div>
+        <h4 style="font-size:1rem;margin:24px 0 16px;padding-top:20px;border-top:1px solid var(--border)">Google Calendar</h4>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Calendar ID</label>
+            <input class="form-input" type="text" id="cfgCalendarId" placeholder="abc123@group.calendar.google.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Google API Key</label>
+            <input class="form-input" type="text" id="cfgApiKey" placeholder="AIzaSy...">
+          </div>
+        </div>
+        <h4 style="font-size:1rem;margin:24px 0 16px;padding-top:20px;border-top:1px solid var(--border)">Social Links</h4>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Facebook URL</label>
+            <input class="form-input" type="url" id="cfgFacebook">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Instagram URL</label>
+            <input class="form-input" type="url" id="cfgInstagram">
+          </div>
+        </div>
+        <button class="btn btn-primary mt-24" onclick="saveSiteConfig()">Save Config</button>
+        <span id="cfgSaveMsg" style="margin-left:16px;font-size:.85rem;color:var(--accent);display:none">Saved!</span>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Business Modal -->
+<div class="admin-modal-overlay" id="bizModal">
+  <div class="admin-modal">
+    <span class="admin-modal-close" onclick="closeModal('bizModal')">&times;</span>
+    <h3 id="bizModalTitle">Add Business</h3>
+    <input type="hidden" id="bizId">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Business Name *</label>
+        <input class="form-input" type="text" id="bizName">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-select" id="bizCategory">
+          <option value="">Select...</option>
+          <option>Art &amp; Studio</option>
+          <option>Food &amp; Drink</option>
+          <option>Retail &amp; Vintage</option>
+          <option>Agriculture</option>
+          <option>Services</option>
+          <option>Manufacturing</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="form-group">
+        <label class="form-label">Short Summary (shown on cards)</label>
+        <input class="form-input" type="text" id="bizSummary">
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="form-group">
+        <label class="form-label">Full Description</label>
+        <textarea class="form-textarea" id="bizDescription"></textarea>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Address</label>
+        <input class="form-input" type="text" id="bizAddress">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone</label>
+        <input class="form-input" type="tel" id="bizPhone">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Website URL</label>
+        <input class="form-input" type="url" id="bizWebsite">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Hours</label>
+        <input class="form-input" type="text" id="bizHours" placeholder="Mon-Sat 10am-6pm">
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="form-group">
+        <label class="form-label">Hero Image URL</label>
+        <input class="form-input" type="url" id="bizHeroImage">
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="form-group">
+        <label class="form-label">District Promo Note (shown on business page sidebar)</label>
+        <input class="form-input" type="text" id="bizPromo" placeholder="Special offer or note for district visitors">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Facebook</label>
+        <input class="form-input" type="url" id="bizFacebook">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Instagram</label>
+        <input class="form-input" type="url" id="bizInstagram">
+      </div>
+    </div>
+    <div style="display:flex;gap:24px;margin:20px 0">
+      <div class="toggle-wrap">
+        <label class="toggle"><input type="checkbox" id="bizPublished"><span class="toggle-slider"></span></label>
+        <span class="form-label" style="margin:0">Published</span>
+      </div>
+      <div class="toggle-wrap">
+        <label class="toggle"><input type="checkbox" id="bizFeatured"><span class="toggle-slider"></span></label>
+        <span class="form-label" style="margin:0">Featured on Homepage</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:8px">
+      <button class="btn btn-primary" onclick="saveBusiness()">Save Business</button>
+      <button class="btn btn-ghost" onclick="closeModal('bizModal')">Cancel</button>
+    </div>
+    <div class="form-error-msg" id="bizSaveErr" style="display:none;margin-top:12px">Error saving. Please try again.</div>
+  </div>
+</div>
+
+<!-- FAQ Modal -->
+<div class="admin-modal-overlay" id="faqModal">
+  <div class="admin-modal">
+    <span class="admin-modal-close" onclick="closeModal('faqModal')">&times;</span>
+    <h3 id="faqModalTitle">Add FAQ</h3>
+    <input type="hidden" id="faqId">
+    <div class="form-row full">
+      <div class="form-group">
+        <label class="form-label">Question</label>
+        <input class="form-input" type="text" id="faqQuestion">
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="form-group">
+        <label class="form-label">Answer</label>
+        <textarea class="form-textarea" id="faqAnswer"></textarea>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-select" id="faqCategory">
+          <option>General</option>
+          <option>Businesses</option>
+          <option>Events</option>
+          <option>Depot Days</option>
+          <option>Car Show</option>
+          <option>Visit / Directions</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Order (lower = first)</label>
+        <input class="form-input" type="number" id="faqOrder" value="10">
+      </div>
+    </div>
+    <div class="toggle-wrap" style="margin:16px 0">
+      <label class="toggle"><input type="checkbox" id="faqPublished" checked><span class="toggle-slider"></span></label>
+      <span class="form-label" style="margin:0">Active (used by AI)</span>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:8px">
+      <button class="btn btn-primary" onclick="saveFaq()">Save FAQ</button>
+      <button class="btn btn-ghost" onclick="closeModal('faqModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, orderBy, query, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const cfg  = window.__ART_DEPOT_CONFIG;
+const app  = initializeApp(cfg);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+window.__ART_DEPOT_DB = db;
+
+// ── Auth ──────────────────────────────────────────────────
+onAuthStateChanged(auth, user => {
+  if (user) { showApp(); }
+  else      { showLogin(); }
+});
+
+window.doLogin = async () => {
+  const email = document.getElementById('loginEmail').value;
+  const pass  = document.getElementById('loginPassword').value;
+  document.getElementById('loginError').style.display = 'none';
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    document.getElementById('loginError').style.display = 'block';
+  }
+};
+window.doLogout = () => signOut(auth);
+
+function showLogin() {
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('adminApp').style.display    = 'none';
+}
+function showApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('adminApp').style.display    = 'flex';
+  loadDashboard();
+  loadBusinesses();
+}
+
+// ── Panel Nav ─────────────────────────────────────────────
+document.querySelectorAll('.admin-nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+    item.classList.add('active');
+    const panel = document.getElementById(`panel-${item.dataset.panel}`);
+    if (panel) panel.classList.add('active');
+    if (item.dataset.panel === 'registrations') loadRegistrations();
+    if (item.dataset.panel === 'faqs')          loadFaqs();
+    if (item.dataset.panel === 'chatlogs')      loadChatLogs();
+    if (item.dataset.panel === 'depotdays')     loadDepotDays();
+    if (item.dataset.panel === 'config')        loadConfig();
+  });
+});
+
+// ── Dashboard ─────────────────────────────────────────────
+async function loadDashboard() {
+  const counts = { statBiz:'businesses', statRegs:'car_show_registrations', statFaqs:'faqs', statChats:'chat_logs' };
+  for (const [elId, col] of Object.entries(counts)) {
+    getDocs(collection(db, col)).then(s => {
+      document.getElementById(elId).textContent = s.size;
+    });
+  }
+}
+
+// ── Businesses ────────────────────────────────────────────
+let bizData = [];
+async function loadBusinesses() {
+  const snap = await getDocs(query(collection(db,'businesses'), orderBy('name','asc')));
+  bizData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderBizTable();
+}
+function renderBizTable() {
+  const tbody = document.getElementById('bizTbody');
+  if (!bizData.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">No businesses yet. Add one above.</td></tr>'; return; }
+  tbody.innerHTML = bizData.map(b => `
+    <tr>
+      <td style="font-weight:500;color:var(--text-primary)">${b.name}</td>
+      <td>${b.category||'—'}</td>
+      <td><span class="admin-badge ${b.published?'badge-published':'badge-draft'}">${b.published?'Published':'Draft'}</span></td>
+      <td>${b.featured ? '⭐' : '—'}</td>
+      <td><div class="admin-action-btns">
+        <button class="admin-btn-sm" onclick="openBizModal('${b.id}')">Edit</button>
+        <button class="admin-btn-sm danger" onclick="deleteBiz('${b.id}')">Delete</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+window.openBizModal = (id) => {
+  document.getElementById('bizSaveErr').style.display = 'none';
+  if (!id) {
+    document.getElementById('bizModalTitle').textContent = 'Add Business';
+    document.getElementById('bizId').value = '';
+    ['bizName','bizSummary','bizDescription','bizAddress','bizPhone','bizWebsite','bizHours','bizHeroImage','bizPromo','bizFacebook','bizInstagram'].forEach(f => document.getElementById(f).value = '');
+    document.getElementById('bizCategory').value = '';
+    document.getElementById('bizPublished').checked = false;
+    document.getElementById('bizFeatured').checked  = false;
+  } else {
+    const b = bizData.find(x => x.id === id);
+    if (!b) return;
+    document.getElementById('bizModalTitle').textContent = 'Edit Business';
+    document.getElementById('bizId').value          = b.id;
+    document.getElementById('bizName').value         = b.name || '';
+    document.getElementById('bizCategory').value     = b.category || '';
+    document.getElementById('bizSummary').value      = b.summary || '';
+    document.getElementById('bizDescription').value  = b.description || '';
+    document.getElementById('bizAddress').value      = b.address || '';
+    document.getElementById('bizPhone').value        = b.phone || '';
+    document.getElementById('bizWebsite').value      = b.website || '';
+    document.getElementById('bizHours').value        = b.hours || '';
+    document.getElementById('bizHeroImage').value    = b.heroImage || '';
+    document.getElementById('bizPromo').value        = b.districtPromo || '';
+    document.getElementById('bizFacebook').value     = b.socials?.Facebook || '';
+    document.getElementById('bizInstagram').value    = b.socials?.Instagram || '';
+    document.getElementById('bizPublished').checked  = !!b.published;
+    document.getElementById('bizFeatured').checked   = !!b.featured;
+  }
+  document.getElementById('bizModal').classList.add('open');
+};
+
+window.saveBusiness = async () => {
+  const name = document.getElementById('bizName').value.trim();
+  if (!name) { document.getElementById('bizSaveErr').textContent = 'Business name is required.'; document.getElementById('bizSaveErr').style.display='block'; return; }
+  const id = document.getElementById('bizId').value;
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+  const data = {
+    name,
+    slug,
+    category:     document.getElementById('bizCategory').value,
+    summary:      document.getElementById('bizSummary').value.trim(),
+    description:  document.getElementById('bizDescription').value.trim(),
+    address:      document.getElementById('bizAddress').value.trim(),
+    phone:        document.getElementById('bizPhone').value.trim(),
+    website:      document.getElementById('bizWebsite').value.trim(),
+    hours:        document.getElementById('bizHours').value.trim(),
+    heroImage:    document.getElementById('bizHeroImage').value.trim(),
+    districtPromo:document.getElementById('bizPromo').value.trim(),
+    socials: {
+      Facebook:  document.getElementById('bizFacebook').value.trim(),
+      Instagram: document.getElementById('bizInstagram').value.trim(),
+    },
+    published:    document.getElementById('bizPublished').checked,
+    featured:     document.getElementById('bizFeatured').checked,
+    updatedAt:    serverTimestamp(),
+  };
+  try {
+    if (id) { await updateDoc(doc(db,'businesses',id), data); }
+    else    { data.createdAt = serverTimestamp(); await addDoc(collection(db,'businesses'), data); }
+    closeModal('bizModal');
+    loadBusinesses();
+  } catch(e) {
+    document.getElementById('bizSaveErr').textContent = 'Error saving: '+e.message;
+    document.getElementById('bizSaveErr').style.display = 'block';
+  }
+};
+
+window.deleteBiz = async (id) => {
+  if (!confirm('Delete this business? This cannot be undone.')) return;
+  await deleteDoc(doc(db,'businesses',id));
+  loadBusinesses();
+};
+
+// ── Car Show Registrations ────────────────────────────────
+let regData = [];
+async function loadRegistrations() {
+  const snap = await getDocs(collection(db,'car_show_registrations'));
+  regData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  regData.sort((a,b) => (b.submittedAt?.seconds||0) - (a.submittedAt?.seconds||0));
+  document.getElementById('regCount').textContent = `${regData.length} registration${regData.length!==1?'s':''}`;
+  const tbody = document.getElementById('regTbody');
+  if (!regData.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">No registrations yet.</td></tr>'; return; }
+  tbody.innerHTML = regData.map(r => {
+    const date = r.submittedAt?.toDate ? r.submittedAt.toDate().toLocaleDateString() : '—';
+    return `<tr>
+      <td style="color:var(--text-primary)">${r.firstName} ${r.lastName}<br><span class="reg-detail">${r.email}</span></td>
+      <td>${r.vehicleYear} ${r.vehicleMake} ${r.vehicleModel}<br><span class="reg-detail">${r.vehicleColor||''}</span></td>
+      <td>${r.vehicleClass||'—'}</td>
+      <td>${r.phone||'—'}</td>
+      <td>${date}</td>
+    </tr>`;
+  }).join('');
+}
+
+window.exportCSV = () => {
+  if (!regData.length) return;
+  const headers = ['First','Last','Email','Phone','Year','Make','Model','Class','Color','Engine','Notes','Date'];
+  const rows = regData.map(r => [
+    r.firstName,r.lastName,r.email,r.phone||'',
+    r.vehicleYear,r.vehicleMake,r.vehicleModel,
+    r.vehicleClass||'',r.vehicleColor||'',r.vehicleEngine||'',
+    (r.notes||'').replace(/,/g,' '),
+    r.submittedAt?.toDate ? r.submittedAt.toDate().toLocaleDateString() : ''
+  ].map(v=>`"${v}"`).join(','));
+  const csv  = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a'); a.href=url; a.download='car-show-registrations.csv'; a.click();
+};
+
+// ── Depot Days ────────────────────────────────────────────
+async function loadDepotDays() {
+  const year = new Date().getFullYear().toString();
+  const snap = await getDoc(doc(db,'depot_days',year));
+  const dd   = snap.exists() ? snap.data() : {};
+  document.getElementById('ddYear').value        = dd.year || year;
+  document.getElementById('ddTagline').value     = dd.tagline || '';
+  document.getElementById('ddOverview').value    = dd.overview || '';
+  document.getElementById('ddBanner').value      = dd.bannerImage || '';
+  document.getElementById('ddCarShowDate').value = dd.carShowDate || '';
+  document.getElementById('ddCarEntry').value    = dd.carShowEntry || '';
+  document.getElementById('ddVendors').value     = (dd.vendors||[]).join('\n');
+  document.getElementById('ddSponsors').value    = (dd.sponsors||[]).join('\n');
+}
+window.saveDepotDays = async () => {
+  const year = document.getElementById('ddYear').value || new Date().getFullYear().toString();
+  const data = {
+    year,
+    tagline:     document.getElementById('ddTagline').value.trim(),
+    overview:    document.getElementById('ddOverview').value.trim(),
+    bannerImage: document.getElementById('ddBanner').value.trim(),
+    carShowDate: document.getElementById('ddCarShowDate').value.trim(),
+    carShowEntry:document.getElementById('ddCarEntry').value.trim(),
+    vendors:  document.getElementById('ddVendors').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    sponsors: document.getElementById('ddSponsors').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    updatedAt: serverTimestamp(),
+  };
+  await setDoc(doc(db,'depot_days',year), data, { merge: true });
+  const msg = document.getElementById('ddSaveMsg');
+  msg.style.display = 'inline';
+  setTimeout(() => msg.style.display = 'none', 2500);
+};
+
+// ── FAQs ──────────────────────────────────────────────────
+let faqData = [];
+async function loadFaqs() {
+  const snap = await getDocs(query(collection(db,'faqs'), orderBy('order','asc')));
+  faqData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const tbody = document.getElementById('faqTbody');
+  if (!faqData.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--text-muted)">No FAQs yet.</td></tr>'; return; }
+  tbody.innerHTML = faqData.map(f => `
+    <tr>
+      <td style="color:var(--text-primary);max-width:360px">${f.question}</td>
+      <td>${f.category||'General'}</td>
+      <td><span class="admin-badge ${f.published?'badge-published':'badge-draft'}">${f.published?'Active':'Inactive'}</span></td>
+      <td><div class="admin-action-btns">
+        <button class="admin-btn-sm" onclick="openFaqModal('${f.id}')">Edit</button>
+        <button class="admin-btn-sm danger" onclick="deleteFaq('${f.id}')">Delete</button>
+      </div></td>
+    </tr>`).join('');
+}
+window.openFaqModal = (id) => {
+  if (!id) {
+    document.getElementById('faqModalTitle').textContent = 'Add FAQ';
+    document.getElementById('faqId').value = '';
+    document.getElementById('faqQuestion').value = '';
+    document.getElementById('faqAnswer').value   = '';
+    document.getElementById('faqCategory').value = 'General';
+    document.getElementById('faqOrder').value    = '10';
+    document.getElementById('faqPublished').checked = true;
+  } else {
+    const f = faqData.find(x => x.id===id);
+    if (!f) return;
+    document.getElementById('faqModalTitle').textContent = 'Edit FAQ';
+    document.getElementById('faqId').value       = f.id;
+    document.getElementById('faqQuestion').value = f.question;
+    document.getElementById('faqAnswer').value   = f.answer;
+    document.getElementById('faqCategory').value = f.category||'General';
+    document.getElementById('faqOrder').value    = f.order||10;
+    document.getElementById('faqPublished').checked = !!f.published;
+  }
+  document.getElementById('faqModal').classList.add('open');
+};
+window.saveFaq = async () => {
+  const id   = document.getElementById('faqId').value;
+  const data = {
+    question:  document.getElementById('faqQuestion').value.trim(),
+    answer:    document.getElementById('faqAnswer').value.trim(),
+    category:  document.getElementById('faqCategory').value,
+    order:     parseInt(document.getElementById('faqOrder').value)||10,
+    published: document.getElementById('faqPublished').checked,
+    updatedAt: serverTimestamp(),
+  };
+  if (id) { await updateDoc(doc(db,'faqs',id), data); }
+  else    { data.createdAt = serverTimestamp(); await addDoc(collection(db,'faqs'), data); }
+  closeModal('faqModal');
+  loadFaqs();
+};
+window.deleteFaq = async (id) => {
+  if (!confirm('Delete this FAQ?')) return;
+  await deleteDoc(doc(db,'faqs',id));
+  loadFaqs();
+};
+
+// ── Chat Logs ─────────────────────────────────────────────
+async function loadChatLogs() {
+  const snap = await getDocs(collection(db,'chat_logs'));
+  const logs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    .sort((a,b)=>(b.timestamp?.seconds||0)-(a.timestamp?.seconds||0))
+    .slice(0,100);
+  const tbody = document.getElementById('chatTbody');
+  if (!logs.length) { tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:32px;color:var(--text-muted)">No chat logs yet.</td></tr>'; return; }
+  tbody.innerHTML = logs.map(l => {
+    const time = l.timestamp?.toDate ? l.timestamp.toDate().toLocaleString() : '—';
+    const preview = (l.answer||'').substring(0,80)+(l.answer?.length>80?'…':'');
+    return `<tr>
+      <td style="color:var(--text-primary);max-width:300px">${l.question||'—'}</td>
+      <td style="max-width:340px;color:var(--text-muted)">${preview}</td>
+      <td style="white-space:nowrap">${time}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Site Config ───────────────────────────────────────────
+async function loadConfig() {
+  const snap = await getDoc(doc(db,'site_config','main'));
+  const cfg  = snap.exists() ? snap.data() : {};
+  document.getElementById('cfgName').value       = cfg.districtName||'Art Depot District';
+  document.getElementById('cfgPhone').value      = cfg.phone||'';
+  document.getElementById('cfgAddress').value    = cfg.address||'';
+  document.getElementById('cfgTagline').value    = cfg.heroTagline||'';
+  document.getElementById('cfgHeroImage').value  = cfg.heroImage||'';
+  document.getElementById('cfgCalendarId').value = cfg.calendarId||'';
+  document.getElementById('cfgApiKey').value     = cfg.googleApiKey||'';
+  document.getElementById('cfgFacebook').value   = cfg.socials?.facebook||'';
+  document.getElementById('cfgInstagram').value  = cfg.socials?.instagram||'';
+}
+window.saveSiteConfig = async () => {
+  const data = {
+    districtName: document.getElementById('cfgName').value.trim(),
+    phone:        document.getElementById('cfgPhone').value.trim(),
+    address:      document.getElementById('cfgAddress').value.trim(),
+    heroTagline:  document.getElementById('cfgTagline').value.trim(),
+    heroImage:    document.getElementById('cfgHeroImage').value.trim(),
+    calendarId:   document.getElementById('cfgCalendarId').value.trim(),
+    googleApiKey: document.getElementById('cfgApiKey').value.trim(),
+    socials: {
+      facebook:  document.getElementById('cfgFacebook').value.trim(),
+      instagram: document.getElementById('cfgInstagram').value.trim(),
+    },
+    updatedAt: serverTimestamp(),
+  };
+  await setDoc(doc(db,'site_config','main'), data, { merge: true });
+  const msg = document.getElementById('cfgSaveMsg');
+  msg.style.display = 'inline';
+  setTimeout(() => msg.style.display = 'none', 2500);
+};
+
+// ── Modal util ────────────────────────────────────────────
+window.closeModal = (id) => document.getElementById(id).classList.remove('open');
+document.querySelectorAll('.admin-modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+</script>
+</body>
+</html>
