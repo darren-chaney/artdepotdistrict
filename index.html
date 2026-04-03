@@ -174,13 +174,7 @@
 <script src="/js/layout.js"></script>
 <script src="/js/chat-widget.js"></script>
 <script type="module">
-  import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore }    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   import { getBusinesses, getDepotDays, getSiteConfig, renderBusinessCard, renderEventItem } from '/js/app.js';
-
-  const app = initializeApp(window.__ART_DEPOT_CONFIG);
-  const db  = getFirestore(app);
-  window.__ART_DEPOT_DB = db;
 
   // Site config
   getSiteConfig().then(cfg => {

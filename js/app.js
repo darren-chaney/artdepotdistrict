@@ -1,44 +1,35 @@
 // Art Depot District — Main App JS
-// Reads from Firestore, powers all public pages
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, getDoc, addDoc, query, where, orderBy, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ── Init ─────────────────────────────────────────────────
-const cfg = window.__ART_DEPOT_CONFIG;
-const app = initializeApp(cfg);
-const db  = getFirestore(app);
-window.__ART_DEPOT_DB = db;
+// Get db lazily so config is always loaded first
+function getDB() {
+  if (window.__ART_DEPOT_DB) return window.__ART_DEPOT_DB;
+  const cfg = window.__ART_DEPOT_CONFIG;
+  if (!cfg) { console.error('firebase-config.js not loaded'); return null; }
+  const app = getApps().length ? getApps()[0] : initializeApp(cfg);
+  const db  = getFirestore(app);
+  window.__ART_DEPOT_DB = db;
+  return db;
+}
 
 // ── Helpers ──────────────────────────────────────────────
-export function slugify(str) {
-  return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-}
-
-export function getSlug() {
-  return new URLSearchParams(window.location.search).get('slug');
-}
-
-export function formatDate(ts) {
-  if (!ts) return '';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
-}
-
 export function formatDateParts(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
   return {
     month: d.toLocaleDateString('en-US',{ month:'short' }).toUpperCase(),
     day:   d.getDate(),
-    full:  d.toLocaleDateString('en-US',{ weekday:'long', month:'long', day:'numeric' })
   };
 }
 
 // ── Businesses ───────────────────────────────────────────
 export async function getBusinesses({ featuredOnly = false } = {}) {
   try {
-    let q = query(collection(db, 'businesses'), where('published','==',true));
+    const db = getDB(); if (!db) return [];
+    let q = query(collection(db,'businesses'), where('published','==',true));
     if (featuredOnly) q = query(collection(db,'businesses'), where('published','==',true), where('featured','==',true));
     const snap = await getDocs(q);
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -47,6 +38,7 @@ export async function getBusinesses({ featuredOnly = false } = {}) {
 
 export async function getBusinessBySlug(slug) {
   try {
+    const db = getDB(); if (!db) return null;
     const q = query(collection(db,'businesses'), where('slug','==',slug), where('published','==',true));
     const snap = await getDocs(q);
     if (snap.empty) return null;
@@ -54,20 +46,11 @@ export async function getBusinessBySlug(slug) {
   } catch(e) { console.error('getBusinessBySlug:', e); return null; }
 }
 
-// ── FAQs ─────────────────────────────────────────────────
-export async function getFAQs() {
-  try {
-    const q = query(collection(db,'faqs'), where('published','==',true), orderBy('order','asc'));
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch(e) { console.error('getFAQs:', e); return []; }
-}
-
 // ── Site Config ──────────────────────────────────────────
 export async function getSiteConfig() {
   try {
-    const ref = doc(db, 'site_config', 'main');
-    const snap = await getDoc(ref);
+    const db = getDB(); if (!db) return {};
+    const snap = await getDoc(doc(db,'site_config','main'));
     return snap.exists() ? snap.data() : {};
   } catch(e) { console.error('getSiteConfig:', e); return {}; }
 }
@@ -75,26 +58,32 @@ export async function getSiteConfig() {
 // ── Depot Days ───────────────────────────────────────────
 export async function getDepotDays(year) {
   try {
+    const db = getDB(); if (!db) return null;
     const y = year || new Date().getFullYear().toString();
-    const ref = doc(db, 'depot_days', y);
-    const snap = await getDoc(ref);
+    const snap = await getDoc(doc(db,'depot_days',y));
     return snap.exists() ? { id: snap.id, ...snap.data() } : null;
   } catch(e) { console.error('getDepotDays:', e); return null; }
+}
+
+// ── FAQs ─────────────────────────────────────────────────
+export async function getFAQs() {
+  try {
+    const db = getDB(); if (!db) return [];
+    const q = query(collection(db,'faqs'), where('published','==',true), orderBy('order','asc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) { console.error('getFAQs:', e); return []; }
 }
 
 // ── Car Show Registration ────────────────────────────────
 export async function submitCarShowRegistration(data) {
   try {
+    const db = getDB(); if (!db) return { success: false, error: 'Not initialized' };
     const docRef = await addDoc(collection(db,'car_show_registrations'), {
-      ...data,
-      submittedAt: serverTimestamp(),
-      status: 'new'
+      ...data, submittedAt: serverTimestamp(), status: 'new'
     });
     return { success: true, id: docRef.id };
-  } catch(e) {
-    console.error('submitCarShow:', e);
-    return { success: false, error: e.message };
-  }
+  } catch(e) { console.error('submitCarShow:', e); return { success: false, error: e.message }; }
 }
 
 // ── Business Card HTML ───────────────────────────────────
@@ -116,8 +105,9 @@ export function renderBusinessCard(biz) {
 
 // ── Event Item HTML ──────────────────────────────────────
 export function renderEventItem(event) {
-  const parts = formatDateParts(event.start.date || event.start.dateTime?.substring(0,10));
-  const time  = event.start.dateTime
+  const dateStr = event.start.date || event.start.dateTime?.substring(0,10);
+  const parts   = formatDateParts(dateStr);
+  const time    = event.start.dateTime
     ? new Date(event.start.dateTime).toLocaleTimeString('en-US',{ hour:'numeric', minute:'2-digit' })
     : 'All day';
   return `
