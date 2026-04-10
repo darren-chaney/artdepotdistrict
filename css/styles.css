@@ -272,6 +272,7 @@ p  { color: var(--text-secondary); line-height: 1.75; }
 .event-info h4 { font-size: 0.92rem; font-weight: 700; text-transform: none; letter-spacing: .01em; color: var(--navy); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .event-info p { font-size: 0.78rem; color: var(--text-muted); }
 .event-time { font-family: var(--font-body); font-size: 0.75rem; font-weight: 700; color: var(--text-muted); flex-shrink: 0; }
+.event-source-tag { display: inline-block; font-size: 0.68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 20px; margin-top: 3px; }
 .events-footer { padding: 12px 20px; background: var(--bg-surface); border-top: 2px solid var(--border-dark); text-align: center; }
 
 /* ── Car Show Sidebar ───────────────────────────────────── */

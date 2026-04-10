@@ -314,16 +314,17 @@
             <input class="form-input" type="text" id="cfgHeroImage" placeholder="URL auto-filled after upload — or paste manually" style="margin-top:8px;font-size:.78rem;color:var(--text-muted)">
           </div>
         </div>
-        <h4 style="font-size:1rem;margin:24px 0 16px;padding-top:20px;border-top:1px solid var(--border)">Google Calendar</h4>
-        <div class="form-row">
+        <h4 style="font-size:1rem;margin:24px 0 16px;padding-top:20px;border-top:1px solid var(--border)">Google Calendars</h4>
+        <div class="form-row full">
           <div class="form-group">
-            <label class="form-label">Calendar ID</label>
-            <input class="form-input" type="text" id="cfgCalendarId" placeholder="abc123@group.calendar.google.com">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Google API Key</label>
+            <label class="form-label">Google API Key <span style="font-weight:400;color:var(--text-muted)">— shared across all calendars</span></label>
             <input class="form-input" type="text" id="cfgApiKey" placeholder="AIzaSy...">
           </div>
+        </div>
+        <div style="margin-bottom:12px">
+          <label class="form-label">Calendar Sources <span style="font-weight:400;color:var(--text-muted)">— add one per business</span></label>
+          <div id="calendarSourcesList" style="display:flex;flex-direction:column;gap:10px;margin-top:8px"></div>
+          <button type="button" onclick="addCalendarRow()" class="btn btn-outline" style="margin-top:12px;font-size:.82rem;padding:8px 18px">+ Add Calendar</button>
         </div>
         <h4 style="font-size:1rem;margin:24px 0 16px;padding-top:20px;border-top:1px solid var(--border)">Social Links</h4>
         <div class="form-row">
@@ -1053,8 +1054,12 @@ async function loadConfig() {
   document.getElementById('cfgHeroImage').value  = cfg.heroImage||'';
   const cfgPrev = document.getElementById('cfgHeroPreview');
   if (cfg.heroImage) { cfgPrev.src = cfg.heroImage; cfgPrev.style.display = 'block'; } else { cfgPrev.style.display = 'none'; }
-  document.getElementById('cfgCalendarId').value = cfg.calendarId||'';
-  document.getElementById('cfgApiKey').value     = cfg.googleApiKey||'';
+  document.getElementById('cfgApiKey').value = cfg.googleApiKey||'';
+  // Load calendar sources list
+  const sources = cfg.calendars || (cfg.calendarId ? [{ name: '', calendarId: cfg.calendarId, color: '#1e3a5c' }] : []);
+  document.getElementById('calendarSourcesList').innerHTML = '';
+  if (sources.length) { sources.forEach(s => addCalendarRow(s)); }
+  else { addCalendarRow(); }
   document.getElementById('cfgFacebook').value   = cfg.socials?.facebook||'';
   document.getElementById('cfgInstagram').value  = cfg.socials?.instagram||'';
   document.getElementById('cfgContactIntro').value  = cfg.contactIntro||'';
@@ -1081,8 +1086,12 @@ window.saveSiteConfig = async () => {
     address:      document.getElementById('cfgAddress').value.trim(),
     heroTagline:  document.getElementById('cfgTagline').value.trim(),
     heroImage:    document.getElementById('cfgHeroImage').value.trim(),
-    calendarId:   document.getElementById('cfgCalendarId').value.trim(),
     googleApiKey: document.getElementById('cfgApiKey').value.trim(),
+    calendars: Array.from(document.querySelectorAll('.cal-source-row')).map(row => ({
+      name:       row.querySelector('.cal-name').value.trim(),
+      calendarId: row.querySelector('.cal-id').value.trim(),
+      color:      row.querySelector('.cal-color').value,
+    })).filter(s => s.calendarId),
     socials: {
       facebook:  document.getElementById('cfgFacebook').value.trim(),
       instagram: document.getElementById('cfgInstagram').value.trim(),
@@ -1103,6 +1112,19 @@ window.saveSiteConfig = async () => {
   const msg = document.getElementById('cfgSaveMsg');
   msg.style.display = 'inline';
   setTimeout(() => msg.style.display = 'none', 2500);
+};
+
+// ── Calendar Sources ──────────────────────────────────────
+window.addCalendarRow = (source = {}) => {
+  const row = document.createElement('div');
+  row.className = 'cal-source-row';
+  row.style.cssText = 'display:grid;grid-template-columns:1fr 2fr auto auto;gap:8px;align-items:center';
+  row.innerHTML = `
+    <input class="form-input cal-name" type="text" placeholder="Business name" value="${source.name||''}" style="font-size:.85rem">
+    <input class="form-input cal-id" type="text" placeholder="abc123@group.calendar.google.com" value="${source.calendarId||''}" style="font-size:.85rem">
+    <input class="cal-color" type="color" value="${source.color||'#1e3a5c'}" title="Label color" style="width:40px;height:38px;padding:2px;border:1px solid var(--border);border-radius:6px;cursor:pointer">
+    <button type="button" onclick="this.closest('.cal-source-row').remove()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;color:var(--text-muted);font-size:1rem">✕</button>`;
+  document.getElementById('calendarSourcesList').appendChild(row);
 };
 
 // ── Modal util ────────────────────────────────────────────

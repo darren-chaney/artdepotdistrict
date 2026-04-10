@@ -199,27 +199,37 @@
       if (img && url) { img.src = url; img.style.display = 'block'; }
     });
 
-    // Load events from Google Calendar
-    if (cfg.calendarId && cfg.googleApiKey) {
-      loadEvents(cfg.calendarId, cfg.googleApiKey);
+    // Load events from Google Calendar(s)
+    const sources = cfg.calendars || (cfg.calendarId ? [{ name: '', calendarId: cfg.calendarId, color: '#1e3a5c' }] : []);
+    if (sources.length && cfg.googleApiKey) {
+      loadEvents(sources, cfg.googleApiKey);
     } else {
       document.getElementById('eventsList').innerHTML = '<div class="empty-state">Events calendar coming soon.</div>';
     }
   });
 
-  async function loadEvents(calId, apiKey) {
+  async function loadEvents(sources, apiKey) {
     const now    = new Date().toISOString();
     const maxEnd = new Date(Date.now() + 60*24*60*60*1000).toISOString();
-    const url    = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events?key=${apiKey}&timeMin=${now}&timeMax=${maxEnd}&singleEvents=true&orderBy=startTime&maxResults=6`;
     try {
-      const res  = await fetch(url);
-      const data = await res.json();
-      const el   = document.getElementById('eventsList');
-      if (!data.items?.length) {
+      const fetches = sources.map(src =>
+        fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(src.calendarId)}/events?key=${apiKey}&timeMin=${now}&timeMax=${maxEnd}&singleEvents=true&orderBy=startTime&maxResults=10`)
+          .then(r => r.json())
+          .then(data => (data.items || []).map(ev => ({ ...ev, _sourceName: src.name, _sourceColor: src.color })))
+          .catch(() => [])
+      );
+      const results = await Promise.all(fetches);
+      const allEvents = results.flat().sort((a, b) => {
+        const aDate = a.start.dateTime || a.start.date;
+        const bDate = b.start.dateTime || b.start.date;
+        return new Date(aDate) - new Date(bDate);
+      });
+      const el = document.getElementById('eventsList');
+      if (!allEvents.length) {
         el.innerHTML = '<div class="empty-state">No upcoming events. Check back soon.</div>';
         return;
       }
-      el.innerHTML = data.items.map(renderEventItem).join('');
+      el.innerHTML = allEvents.slice(0,6).map(ev => renderEventItem(ev, ev._sourceName, ev._sourceColor)).join('');
     } catch(e) {
       document.getElementById('eventsList').innerHTML = '<div class="empty-state">Events unavailable right now.</div>';
     }

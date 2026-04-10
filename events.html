@@ -39,27 +39,40 @@
   const container = document.getElementById('eventsContainer');
 
   getSiteConfig().then(async cfg => {
-    if (!cfg.calendarId || !cfg.googleApiKey) {
+    const sources = cfg.calendars || (cfg.calendarId ? [{ name: '', calendarId: cfg.calendarId, color: '#1e3a5c' }] : []);
+    if (!sources.length || !cfg.googleApiKey) {
       container.innerHTML = '<div class="empty-state">Events calendar coming soon.</div>';
       return;
     }
 
     const now    = new Date().toISOString();
     const maxEnd = new Date(Date.now() + 90*24*60*60*1000).toISOString();
-    const url    = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cfg.calendarId)}/events?key=${cfg.googleApiKey}&timeMin=${now}&timeMax=${maxEnd}&singleEvents=true&orderBy=startTime&maxResults=40`;
 
     try {
-      const res  = await fetch(url);
-      const data = await res.json();
+      // Fetch all calendars in parallel
+      const fetches = sources.map(src =>
+        fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(src.calendarId)}/events?key=${cfg.googleApiKey}&timeMin=${now}&timeMax=${maxEnd}&singleEvents=true&orderBy=startTime&maxResults=40`)
+          .then(r => r.json())
+          .then(data => (data.items || []).map(ev => ({ ...ev, _sourceName: src.name, _sourceColor: src.color })))
+          .catch(() => [])
+      );
+      const results = await Promise.all(fetches);
 
-      if (!data.items?.length) {
+      // Merge and sort all events by start date
+      const allEvents = results.flat().sort((a, b) => {
+        const aDate = a.start.dateTime || a.start.date;
+        const bDate = b.start.dateTime || b.start.date;
+        return new Date(aDate) - new Date(bDate);
+      });
+
+      if (!allEvents.length) {
         container.innerHTML = '<div class="empty-state">No upcoming events. Check back soon.</div>';
         return;
       }
 
       // Group by month
       const grouped = {};
-      data.items.forEach(ev => {
+      allEvents.forEach(ev => {
         const dateStr = ev.start.date || ev.start.dateTime?.substring(0,10);
         const d       = new Date(dateStr + 'T00:00:00');
         const key     = d.toLocaleDateString('en-US',{ month:'long', year:'numeric' });
@@ -72,7 +85,7 @@
         html += `
           <div style="margin-bottom:48px">
             <h3 style="font-size:1.1rem;color:var(--text-muted);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">${month}</h3>
-            <div class="events-list">${events.map(renderEventItem).join('')}</div>
+            <div class="events-list">${events.map(ev => renderEventItem(ev, ev._sourceName, ev._sourceColor)).join('')}</div>
           </div>`;
       }
       container.innerHTML = html;

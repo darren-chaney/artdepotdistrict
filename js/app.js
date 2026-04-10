@@ -103,12 +103,15 @@ export function renderBusinessCard(biz) {
 }
 
 // ── Event Item HTML ──────────────────────────────────────
-export function renderEventItem(event) {
+export function renderEventItem(event, sourceName, sourceColor) {
   const dateStr = event.start.date || event.start.dateTime?.substring(0,10);
   const parts   = formatDateParts(dateStr);
   const time    = event.start.dateTime
     ? new Date(event.start.dateTime).toLocaleTimeString('en-US',{ hour:'numeric', minute:'2-digit' })
     : 'All day';
+  const sourceTag = sourceName
+    ? `<span class="event-source-tag" style="background:${sourceColor||'#1e3a5c'}20;color:${sourceColor||'#1e3a5c'};border:1px solid ${sourceColor||'#1e3a5c'}40">${sourceName}</span>`
+    : '';
   return `
     <div class="event-item">
       <div class="event-date-block">
@@ -118,6 +121,7 @@ export function renderEventItem(event) {
       <div class="event-divider"></div>
       <div class="event-info">
         <h4>${event.summary || 'Untitled Event'}</h4>
+        ${sourceTag}
         <p>${event.location || ''}</p>
       </div>
       <div class="event-time">${time}</div>
