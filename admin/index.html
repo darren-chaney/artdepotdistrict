@@ -28,6 +28,15 @@
     .gallery-rm:hover { border-color: var(--accent-border); color: var(--accent); }
     .export-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
     .reg-detail { font-size: .85rem; color: var(--text-muted); }
+    .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 16px; text-align: center; cursor: pointer; transition: border-color .2s; background: var(--bg-surface); }
+    .upload-zone:hover { border-color: var(--accent-border); }
+    .upload-zone input[type=file] { display: none; }
+    .upload-zone-label { font-size: .8rem; color: var(--text-muted); margin-top: 6px; }
+    .upload-preview { width: 100%; max-height: 160px; object-fit: cover; border-radius: var(--radius); margin-top: 10px; display: none; border: 1px solid var(--border); }
+    .upload-progress { display: none; margin-top: 8px; }
+    .upload-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .upload-bar-fill { height: 100%; width: 0%; background: var(--accent); transition: width .2s; }
+    .upload-bar-label { font-size: .72rem; color: var(--text-muted); margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -63,7 +72,7 @@
       <span class="admin-nav-icon">🏢</span> Businesses
     </div>
     <div class="admin-nav-item" data-panel="registrations">
-      <span class="admin-nav-icon">🚗</span> Car Show Regs
+      <span class="admin-nav-icon">🚗</span> Car Show
     </div>
     <div class="admin-nav-item" data-panel="depotdays">
       <span class="admin-nav-icon">🎪</span> Depot Days
@@ -123,7 +132,44 @@
 
     <!-- Car Show Registrations -->
     <div class="admin-panel" id="panel-registrations">
-      <div class="admin-header"><h2>Car Show Registrations</h2></div>
+      <div class="admin-header"><h2>Car Show</h2></div>
+
+      <!-- Car Show Content -->
+      <div class="admin-card" style="margin-bottom:32px">
+        <h4 style="font-size:1rem;margin-bottom:20px">Car Show Page Content</h4>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Car Show Date</label>
+            <input class="form-input" type="text" id="ddCarShowDate" placeholder="e.g. September 13, 2025">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Entry Fee Info</label>
+            <input class="form-input" type="text" id="ddCarEntry" placeholder="Free pre-registration. Day-of entry $10.">
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">Car Show Poster <span style="font-weight:400;color:var(--text-muted)">(vertical/portrait)</span></label>
+            <div class="upload-zone" onclick="document.getElementById('ddPosterFile').click()">
+              <input type="file" id="ddPosterFile" accept="image/*"
+                onchange="handleImageUpload(this,'depot-days/posters','ddPosterProgress','ddPoster','ddPosterPreview')">
+              <div style="font-size:.85rem;color:var(--text-secondary)">Click to upload car show poster</div>
+              <div class="upload-zone-label">JPG or PNG — portrait orientation recommended</div>
+              <img id="ddPosterPreview" class="upload-preview" style="max-height:300px;object-fit:contain">
+            </div>
+            <div class="upload-progress" id="ddPosterProgress">
+              <div class="upload-bar"><div class="upload-bar-fill"></div></div>
+              <div class="upload-bar-label">Uploading...</div>
+            </div>
+            <input class="form-input" type="text" id="ddPoster" placeholder="URL auto-filled after upload — or paste manually" style="margin-top:8px;font-size:.78rem;color:var(--text-muted)">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveCarShowContent()">Save Car Show Content</button>
+        <span id="csSaveMsg" style="margin-left:16px;font-size:.85rem;color:var(--accent);display:none">Saved!</span>
+      </div>
+
+      <!-- Registrations -->
+      <h4 style="font-size:1rem;margin-bottom:16px">Registrations</h4>
       <div class="export-bar">
         <button class="btn btn-ghost" onclick="exportCSV()" style="font-size:.78rem">Export CSV</button>
         <span id="regCount" style="font-family:var(--font-ui);font-size:.8rem;color:var(--text-muted)"></span>
@@ -166,8 +212,19 @@
         </div>
         <div class="form-row full">
           <div class="form-group">
-            <label class="form-label">Banner Image URL</label>
-            <input class="form-input" type="text" id="ddBanner" placeholder="https://...">
+            <label class="form-label">Banner Image</label>
+            <div class="upload-zone" onclick="document.getElementById('ddBannerFile').click()">
+              <input type="file" id="ddBannerFile" accept="image/*"
+                onchange="handleImageUpload(this,'depot-days','ddBannerProgress','ddBanner','ddBannerPreview')">
+              <div style="font-size:.85rem;color:var(--text-secondary)">Click to upload Depot Days banner</div>
+              <div class="upload-zone-label">JPG or WebP — recommended 1920×800px</div>
+              <img id="ddBannerPreview" class="upload-preview">
+            </div>
+            <div class="upload-progress" id="ddBannerProgress">
+              <div class="upload-bar"><div class="upload-bar-fill"></div></div>
+              <div class="upload-bar-label">Uploading...</div>
+            </div>
+            <input class="form-input" type="text" id="ddBanner" placeholder="URL auto-filled after upload — or paste manually" style="margin-top:8px;font-size:.78rem;color:var(--text-muted)">
           </div>
         </div>
         <div class="form-row full">
@@ -180,12 +237,6 @@
           <div class="form-group">
             <label class="form-label">Sponsors (one per line)</label>
             <textarea class="form-textarea" id="ddSponsors" placeholder="Sponsor Name&#10;Another Sponsor"></textarea>
-          </div>
-        </div>
-        <div class="form-row full">
-          <div class="form-group">
-            <label class="form-label">Car Show Entry Info</label>
-            <input class="form-input" type="text" id="ddCarEntry" placeholder="Free pre-registration. Day-of entry $10.">
           </div>
         </div>
         <button class="btn btn-primary mt-24" onclick="saveDepotDays()">Save Depot Days</button>
@@ -248,8 +299,19 @@
         </div>
         <div class="form-row full">
           <div class="form-group">
-            <label class="form-label">Hero Image URL</label>
-            <input class="form-input" type="text" id="cfgHeroImage" placeholder="https://...">
+            <label class="form-label">Hero Image</label>
+            <div class="upload-zone" onclick="document.getElementById('cfgHeroFile').click()">
+              <input type="file" id="cfgHeroFile" accept="image/*"
+                onchange="handleImageUpload(this,'site/hero','cfgHeroProgress','cfgHeroImage','cfgHeroPreview')">
+              <div style="font-size:.85rem;color:var(--text-secondary)">Click to upload homepage hero image</div>
+              <div class="upload-zone-label">JPG or WebP — recommended 1920×1080px</div>
+              <img id="cfgHeroPreview" class="upload-preview">
+            </div>
+            <div class="upload-progress" id="cfgHeroProgress">
+              <div class="upload-bar"><div class="upload-bar-fill"></div></div>
+              <div class="upload-bar-label">Uploading...</div>
+            </div>
+            <input class="form-input" type="text" id="cfgHeroImage" placeholder="URL auto-filled after upload — or paste manually" style="margin-top:8px;font-size:.78rem;color:var(--text-muted)">
           </div>
         </div>
         <h4 style="font-size:1rem;margin:24px 0 16px;padding-top:20px;border-top:1px solid var(--border)">Google Calendar</h4>
@@ -272,6 +334,87 @@
           <div class="form-group">
             <label class="form-label">Instagram URL</label>
             <input class="form-input" type="url" id="cfgInstagram">
+          </div>
+        </div>
+        <h4 style="font-size:1rem;margin:24px 0 16px;padding-top:20px;border-top:1px solid var(--border)">Feature Card Images <span style="font-weight:400;color:var(--text-muted);font-size:.85rem">— the 3 cards below the hero + car show card</span></h4>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Businesses Card</label>
+            <div class="upload-zone" onclick="document.getElementById('cfgCardBizFile').click()">
+              <input type="file" id="cfgCardBizFile" accept="image/*" onchange="handleImageUpload(this,'site/cards','cfgCardBizProg','cfgCardBusinesses','cfgCardBizPreview')">
+              <div style="font-size:.8rem;color:var(--text-secondary)">Click to upload</div>
+              <img id="cfgCardBizPreview" class="upload-preview">
+            </div>
+            <div class="upload-progress" id="cfgCardBizProg"><div class="upload-bar"><div class="upload-bar-fill"></div></div><div class="upload-bar-label">Uploading...</div></div>
+            <input class="form-input" type="text" id="cfgCardBusinesses" placeholder="URL auto-filled after upload" style="margin-top:6px;font-size:.78rem;color:var(--text-muted)">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Events Card</label>
+            <div class="upload-zone" onclick="document.getElementById('cfgCardEvtFile').click()">
+              <input type="file" id="cfgCardEvtFile" accept="image/*" onchange="handleImageUpload(this,'site/cards','cfgCardEvtProg','cfgCardEvents','cfgCardEvtPreview')">
+              <div style="font-size:.8rem;color:var(--text-secondary)">Click to upload</div>
+              <img id="cfgCardEvtPreview" class="upload-preview">
+            </div>
+            <div class="upload-progress" id="cfgCardEvtProg"><div class="upload-bar"><div class="upload-bar-fill"></div></div><div class="upload-bar-label">Uploading...</div></div>
+            <input class="form-input" type="text" id="cfgCardEvents" placeholder="URL auto-filled after upload" style="margin-top:6px;font-size:.78rem;color:var(--text-muted)">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Depot Days Card</label>
+            <div class="upload-zone" onclick="document.getElementById('cfgCardDdFile').click()">
+              <input type="file" id="cfgCardDdFile" accept="image/*" onchange="handleImageUpload(this,'site/cards','cfgCardDdProg','cfgCardDepotDays','cfgCardDdPreview')">
+              <div style="font-size:.8rem;color:var(--text-secondary)">Click to upload</div>
+              <img id="cfgCardDdPreview" class="upload-preview">
+            </div>
+            <div class="upload-progress" id="cfgCardDdProg"><div class="upload-bar"><div class="upload-bar-fill"></div></div><div class="upload-bar-label">Uploading...</div></div>
+            <input class="form-input" type="text" id="cfgCardDepotDays" placeholder="URL auto-filled after upload" style="margin-top:6px;font-size:.78rem;color:var(--text-muted)">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Car Show Card</label>
+            <div class="upload-zone" onclick="document.getElementById('cfgCardCsFile').click()">
+              <input type="file" id="cfgCardCsFile" accept="image/*" onchange="handleImageUpload(this,'site/cards','cfgCardCsProg','cfgCardCarShow','cfgCardCsPreview')">
+              <div style="font-size:.8rem;color:var(--text-secondary)">Click to upload</div>
+              <img id="cfgCardCsPreview" class="upload-preview">
+            </div>
+            <div class="upload-progress" id="cfgCardCsProg"><div class="upload-bar"><div class="upload-bar-fill"></div></div><div class="upload-bar-label">Uploading...</div></div>
+            <input class="form-input" type="text" id="cfgCardCarShow" placeholder="URL auto-filled after upload" style="margin-top:6px;font-size:.78rem;color:var(--text-muted)">
+          </div>
+        </div>
+        <h4 style="font-size:1rem;margin:24px 0 16px;padding-top:20px;border-top:1px solid var(--border)">Contact Page</h4>
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">Contact Page Intro <span style="font-weight:400;color:var(--text-muted)">— header description text</span></label>
+            <textarea class="form-textarea" id="cfgContactIntro" style="min-height:70px" placeholder="Questions about the district, events, or getting your business listed? We'd love to hear from you."></textarea>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Contact Email</label>
+            <input class="form-input" type="email" id="cfgContactEmail" placeholder="info@artdepotdistrict.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contact Sidebar Note <span style="font-weight:400;color:var(--text-muted)">— optional extra info</span></label>
+            <input class="form-input" type="text" id="cfgContactNote" placeholder="e.g. Artesian Business District (official city designation)">
+          </div>
+        </div>
+        <h4 style="font-size:1rem;margin:24px 0 16px;padding-top:20px;border-top:1px solid var(--border)">Footer Content</h4>
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">Footer Tagline <span style="font-weight:400;color:var(--text-muted)">— shown under district name</span></label>
+            <input class="form-input" type="text" id="cfgFooterTagline" placeholder="Explore • Create • Discover">
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">Footer Description</label>
+            <textarea class="form-textarea" id="cfgFooterDesc" style="min-height:80px" placeholder="A destination for art, community, food, and culture in the heart of Covington, Tennessee."></textarea>
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">Copyright Text <span style="font-weight:400;color:var(--text-muted)">— year is added automatically</span></label>
+            <input class="form-input" type="text" id="cfgCopyright" placeholder="Art Depot District — Covington, Tennessee">
           </div>
         </div>
         <button class="btn btn-primary mt-24" onclick="saveSiteConfig()">Save Config</button>
@@ -341,8 +484,35 @@
     </div>
     <div class="form-row full">
       <div class="form-group">
-        <label class="form-label">Hero Image URL</label>
-        <input class="form-input" type="url" id="bizHeroImage">
+        <label class="form-label">Hero Image</label>
+        <div class="upload-zone" onclick="document.getElementById('bizHeroFile').click()">
+          <input type="file" id="bizHeroFile" accept="image/*"
+            onchange="handleImageUpload(this,'businesses/heroes','bizHeroProgress','bizHeroImage','bizHeroPreview')">
+          <div style="font-size:.85rem;color:var(--text-secondary)">Click to upload hero image</div>
+          <div class="upload-zone-label">JPG or WebP — recommended 1600×700px</div>
+          <img id="bizHeroPreview" class="upload-preview">
+        </div>
+        <div class="upload-progress" id="bizHeroProgress">
+          <div class="upload-bar"><div class="upload-bar-fill"></div></div>
+          <div class="upload-bar-label">Uploading...</div>
+        </div>
+        <input class="form-input" type="url" id="bizHeroImage" placeholder="URL auto-filled after upload — or paste manually" style="margin-top:8px;font-size:.78rem;color:var(--text-muted)">
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="form-group">
+        <label class="form-label">Gallery Images <span style="font-weight:400;color:var(--text-muted)">(up to 4)</span></label>
+        <div class="upload-zone" onclick="document.getElementById('bizGalleryFile').click()" style="text-align:center">
+          <input type="file" id="bizGalleryFile" accept="image/*" multiple
+            onchange="handleGalleryUpload(this)">
+          <div style="font-size:.85rem;color:var(--text-secondary)">Click to add gallery images</div>
+          <div class="upload-zone-label">JPG or WebP — recommended 800×600px — up to 4 images</div>
+        </div>
+        <div class="upload-progress" id="bizGalleryProgress">
+          <div class="upload-bar"><div class="upload-bar-fill"></div></div>
+          <div class="upload-bar-label">Uploading...</div>
+        </div>
+        <div class="gallery-preview" id="bizGalleryPreview"></div>
       </div>
     </div>
     <div class="form-row full">
@@ -432,12 +602,109 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, orderBy, query, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytesResumable, getDownloadURL }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
-const cfg  = window.__ART_DEPOT_CONFIG;
-const app  = initializeApp(cfg);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const cfg     = window.__ART_DEPOT_CONFIG;
+const app     = initializeApp(cfg);
+const auth    = getAuth(app);
+const db      = getFirestore(app);
+const storage = getStorage(app);
 window.__ART_DEPOT_DB = db;
+
+// ── Image Upload Helper ───────────────────────────────────
+async function uploadImage(file, path, progressElId, urlInputId, previewId) {
+  const progressWrap = document.getElementById(progressElId);
+  const bar = progressWrap?.querySelector('.upload-bar-fill');
+  const label = progressWrap?.querySelector('.upload-bar-label');
+  if (progressWrap) progressWrap.style.display = 'block';
+
+  const storageRef = ref(storage, path);
+  const task = uploadBytesResumable(storageRef, file);
+
+  return new Promise((resolve, reject) => {
+    task.on('state_changed',
+      snap => {
+        const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+        if (bar) bar.style.width = pct + '%';
+        if (label) label.textContent = pct + '%';
+      },
+      err => {
+        if (label) label.textContent = 'Upload failed';
+        reject(err);
+      },
+      async () => {
+        const url = await getDownloadURL(task.snapshot.ref);
+        const input = document.getElementById(urlInputId);
+        if (input) input.value = url;
+        const preview = document.getElementById(previewId);
+        if (preview) { preview.src = url; preview.style.display = 'block'; }
+        if (label) label.textContent = 'Uploaded!';
+        setTimeout(() => { if (progressWrap) progressWrap.style.display = 'none'; }, 2000);
+        resolve(url);
+      }
+    );
+  });
+}
+
+window.handleImageUpload = async (inputEl, folder, progressElId, urlInputId, previewId) => {
+  const file = inputEl.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop();
+  const path = `${folder}/${Date.now()}.${ext}`;
+  await uploadImage(file, path, progressElId, urlInputId, previewId);
+};
+
+// ── Gallery Upload ────────────────────────────────────────
+let bizGalleryUrls = [];
+
+function renderGalleryPreview() {
+  const wrap = document.getElementById('bizGalleryPreview');
+  wrap.innerHTML = bizGalleryUrls.map((url, i) => `
+    <div style="position:relative;display:inline-block">
+      <img src="${url}" class="gallery-thumb">
+      <button onclick="removeGalleryImage(${i})" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">×</button>
+    </div>`).join('') +
+    (bizGalleryUrls.length < 4 ? '' : '');
+}
+
+window.removeGalleryImage = (i) => {
+  bizGalleryUrls.splice(i, 1);
+  renderGalleryPreview();
+};
+
+window.handleGalleryUpload = async (inputEl) => {
+  const files = Array.from(inputEl.files).slice(0, 4 - bizGalleryUrls.length);
+  if (!files.length) return;
+  const progressWrap = document.getElementById('bizGalleryProgress');
+  const bar = progressWrap.querySelector('.upload-bar-fill');
+  const label = progressWrap.querySelector('.upload-bar-label');
+  progressWrap.style.display = 'block';
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const ext = file.name.split('.').pop();
+    const path = `businesses/gallery/${Date.now()}_${i}.${ext}`;
+    label.textContent = `Uploading ${i + 1} of ${files.length}...`;
+    bar.style.width = '0%';
+    const storageRef = ref(storage, path);
+    const task = uploadBytesResumable(storageRef, file);
+    await new Promise((resolve, reject) => {
+      task.on('state_changed',
+        snap => { bar.style.width = Math.round((snap.bytesTransferred / snap.totalBytes) * 100) + '%'; },
+        reject,
+        async () => {
+          const url = await getDownloadURL(task.snapshot.ref);
+          bizGalleryUrls.push(url);
+          renderGalleryPreview();
+          resolve();
+        }
+      );
+    });
+  }
+  label.textContent = 'Done!';
+  setTimeout(() => { progressWrap.style.display = 'none'; }, 2000);
+  inputEl.value = '';
+};
 
 // ── Auth ──────────────────────────────────────────────────
 onAuthStateChanged(auth, user => {
@@ -479,7 +746,7 @@ document.querySelectorAll('.admin-nav-item').forEach(item => {
     item.classList.add('active');
     const panel = document.getElementById(`panel-${item.dataset.panel}`);
     if (panel) panel.classList.add('active');
-    if (item.dataset.panel === 'registrations') loadRegistrations();
+    if (item.dataset.panel === 'registrations') { loadRegistrations(); loadCarShowContent(); }
     if (item.dataset.panel === 'faqs')          loadFaqs();
     if (item.dataset.panel === 'chatlogs')      loadChatLogs();
     if (item.dataset.panel === 'depotdays')     loadDepotDays();
@@ -522,6 +789,7 @@ function renderBizTable() {
 
 window.openBizModal = (id) => {
   document.getElementById('bizSaveErr').style.display = 'none';
+  bizGalleryUrls = [];
   if (!id) {
     document.getElementById('bizModalTitle').textContent = 'Add Business';
     document.getElementById('bizId').value = '';
@@ -529,6 +797,8 @@ window.openBizModal = (id) => {
     document.getElementById('bizCategory').value = '';
     document.getElementById('bizPublished').checked = false;
     document.getElementById('bizFeatured').checked  = false;
+    document.getElementById('bizHeroPreview').style.display = 'none';
+    renderGalleryPreview();
   } else {
     const b = bizData.find(x => x.id === id);
     if (!b) return;
@@ -543,6 +813,10 @@ window.openBizModal = (id) => {
     document.getElementById('bizWebsite').value      = b.website || '';
     document.getElementById('bizHours').value        = b.hours || '';
     document.getElementById('bizHeroImage').value    = b.heroImage || '';
+    const prev = document.getElementById('bizHeroPreview');
+    if (b.heroImage) { prev.src = b.heroImage; prev.style.display = 'block'; } else { prev.style.display = 'none'; }
+    bizGalleryUrls = Array.isArray(b.gallery) ? [...b.gallery] : [];
+    renderGalleryPreview();
     document.getElementById('bizPromo').value        = b.districtPromo || '';
     document.getElementById('bizFacebook').value     = b.socials?.Facebook || '';
     document.getElementById('bizInstagram').value    = b.socials?.Instagram || '';
@@ -568,6 +842,7 @@ window.saveBusiness = async () => {
     website:      document.getElementById('bizWebsite').value.trim(),
     hours:        document.getElementById('bizHours').value.trim(),
     heroImage:    document.getElementById('bizHeroImage').value.trim(),
+    gallery:      bizGalleryUrls,
     districtPromo:document.getElementById('bizPromo').value.trim(),
     socials: {
       Facebook:  document.getElementById('bizFacebook').value.trim(),
@@ -640,8 +915,8 @@ async function loadDepotDays() {
   document.getElementById('ddTagline').value     = dd.tagline || '';
   document.getElementById('ddOverview').value    = dd.overview || '';
   document.getElementById('ddBanner').value      = dd.bannerImage || '';
-  document.getElementById('ddCarShowDate').value = dd.carShowDate || '';
-  document.getElementById('ddCarEntry').value    = dd.carShowEntry || '';
+  const ddPrev = document.getElementById('ddBannerPreview');
+  if (dd.bannerImage) { ddPrev.src = dd.bannerImage; ddPrev.style.display = 'block'; } else { ddPrev.style.display = 'none'; }
   document.getElementById('ddVendors').value     = (dd.vendors||[]).join('\n');
   document.getElementById('ddSponsors').value    = (dd.sponsors||[]).join('\n');
 }
@@ -652,14 +927,37 @@ window.saveDepotDays = async () => {
     tagline:     document.getElementById('ddTagline').value.trim(),
     overview:    document.getElementById('ddOverview').value.trim(),
     bannerImage: document.getElementById('ddBanner').value.trim(),
-    carShowDate: document.getElementById('ddCarShowDate').value.trim(),
-    carShowEntry:document.getElementById('ddCarEntry').value.trim(),
     vendors:  document.getElementById('ddVendors').value.split('\n').map(s=>s.trim()).filter(Boolean),
     sponsors: document.getElementById('ddSponsors').value.split('\n').map(s=>s.trim()).filter(Boolean),
     updatedAt: serverTimestamp(),
   };
   await setDoc(doc(db,'depot_days',year), data, { merge: true });
   const msg = document.getElementById('ddSaveMsg');
+  msg.style.display = 'inline';
+  setTimeout(() => msg.style.display = 'none', 2500);
+};
+
+// ── Car Show Content ──────────────────────────────────────
+async function loadCarShowContent() {
+  const year = new Date().getFullYear().toString();
+  const snap = await getDoc(doc(db,'depot_days',year));
+  const dd   = snap.exists() ? snap.data() : {};
+  document.getElementById('ddCarShowDate').value = dd.carShowDate || '';
+  document.getElementById('ddCarEntry').value    = dd.carShowEntry || '';
+  document.getElementById('ddPoster').value      = dd.carShowPoster || '';
+  const prev = document.getElementById('ddPosterPreview');
+  if (dd.carShowPoster) { prev.src = dd.carShowPoster; prev.style.display = 'block'; } else { prev.style.display = 'none'; }
+}
+window.saveCarShowContent = async () => {
+  const year = new Date().getFullYear().toString();
+  const data = {
+    carShowDate:   document.getElementById('ddCarShowDate').value.trim(),
+    carShowEntry:  document.getElementById('ddCarEntry').value.trim(),
+    carShowPoster: document.getElementById('ddPoster').value.trim(),
+    updatedAt: serverTimestamp(),
+  };
+  await setDoc(doc(db,'depot_days',year), data, { merge: true });
+  const msg = document.getElementById('csSaveMsg');
   msg.style.display = 'inline';
   setTimeout(() => msg.style.display = 'none', 2500);
 };
@@ -753,10 +1051,28 @@ async function loadConfig() {
   document.getElementById('cfgAddress').value    = cfg.address||'';
   document.getElementById('cfgTagline').value    = cfg.heroTagline||'';
   document.getElementById('cfgHeroImage').value  = cfg.heroImage||'';
+  const cfgPrev = document.getElementById('cfgHeroPreview');
+  if (cfg.heroImage) { cfgPrev.src = cfg.heroImage; cfgPrev.style.display = 'block'; } else { cfgPrev.style.display = 'none'; }
   document.getElementById('cfgCalendarId').value = cfg.calendarId||'';
   document.getElementById('cfgApiKey').value     = cfg.googleApiKey||'';
   document.getElementById('cfgFacebook').value   = cfg.socials?.facebook||'';
   document.getElementById('cfgInstagram').value  = cfg.socials?.instagram||'';
+  document.getElementById('cfgContactIntro').value  = cfg.contactIntro||'';
+  document.getElementById('cfgContactEmail').value  = cfg.contactEmail||'';
+  document.getElementById('cfgContactNote').value   = cfg.contactNote||'';
+  document.getElementById('cfgFooterTagline').value = cfg.footerTagline||'';
+  document.getElementById('cfgFooterDesc').value    = cfg.footerDesc||'';
+  document.getElementById('cfgCopyright').value     = cfg.footerCopyright||'';
+  // Feature card images
+  const cardFields = ['cfgCardBusinesses','cfgCardEvents','cfgCardDepotDays','cfgCardCarShow'];
+  const cardKeys   = ['cardBusinesses','cardEvents','cardDepotDays','cardCarShow'];
+  const cardPreviews = ['cfgCardBizPreview','cfgCardEvtPreview','cfgCardDdPreview','cfgCardCsPreview'];
+  cardFields.forEach((fId, i) => {
+    const url = cfg[cardKeys[i]] || '';
+    document.getElementById(fId).value = url;
+    const prev = document.getElementById(cardPreviews[i]);
+    if (url) { prev.src = url; prev.style.display = 'block'; } else { prev.style.display = 'none'; }
+  });
 }
 window.saveSiteConfig = async () => {
   const data = {
@@ -771,6 +1087,16 @@ window.saveSiteConfig = async () => {
       facebook:  document.getElementById('cfgFacebook').value.trim(),
       instagram: document.getElementById('cfgInstagram').value.trim(),
     },
+    contactIntro:    document.getElementById('cfgContactIntro').value.trim(),
+    contactEmail:    document.getElementById('cfgContactEmail').value.trim(),
+    contactNote:     document.getElementById('cfgContactNote').value.trim(),
+    footerTagline:   document.getElementById('cfgFooterTagline').value.trim(),
+    footerDesc:      document.getElementById('cfgFooterDesc').value.trim(),
+    footerCopyright: document.getElementById('cfgCopyright').value.trim(),
+    cardBusinesses:  document.getElementById('cfgCardBusinesses').value.trim(),
+    cardEvents:      document.getElementById('cfgCardEvents').value.trim(),
+    cardDepotDays:   document.getElementById('cfgCardDepotDays').value.trim(),
+    cardCarShow:     document.getElementById('cfgCardCarShow').value.trim(),
     updatedAt: serverTimestamp(),
   };
   await setDoc(doc(db,'site_config','main'), data, { merge: true });

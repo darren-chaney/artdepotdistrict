@@ -12,7 +12,7 @@
   <div class="container">
     <span class="eyebrow">Get in Touch</span>
     <h1>Contact Us</h1>
-    <p>Questions about the district, events, or getting your business listed? We'd love to hear from you.</p>
+    <p id="contactIntro">Questions about the district, events, or getting your business listed? We'd love to hear from you.</p>
   </div>
 </div>
 <section class="section">
@@ -58,14 +58,22 @@
     <div>
       <div class="biz-info-card" style="position:sticky;top:calc(var(--nav-height)+20px)">
         <h5 style="margin-bottom:20px">District Info</h5>
-        <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:16px" id="contactSidebar">
           <div>
             <div class="form-label" style="margin-bottom:4px">Location</div>
-            <p style="font-size:.9rem;color:var(--text-secondary)">Covington, Tennessee<br>Tipton County</p>
+            <p style="font-size:.9rem;color:var(--text-secondary)" id="contactAddress">Covington, Tennessee<br>Tipton County</p>
           </div>
-          <div>
-            <div class="form-label" style="margin-bottom:4px">Also Known As</div>
-            <p style="font-size:.9rem;color:var(--text-secondary)">Artesian Business District<br>(official city designation)</p>
+          <div id="contactPhoneWrap" style="display:none">
+            <div class="form-label" style="margin-bottom:4px">Phone</div>
+            <p style="font-size:.9rem;color:var(--text-secondary)"><a id="contactPhone" href="#" style="color:var(--accent)"></a></p>
+          </div>
+          <div id="contactEmailWrap" style="display:none">
+            <div class="form-label" style="margin-bottom:4px">Email</div>
+            <p style="font-size:.9rem;color:var(--text-secondary)"><a id="contactEmail" href="#" style="color:var(--accent)"></a></p>
+          </div>
+          <div id="contactNoteWrap" style="display:none">
+            <div class="form-label" style="margin-bottom:4px">Note</div>
+            <p style="font-size:.9rem;color:var(--text-secondary)" id="contactNote"></p>
           </div>
         </div>
         <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px">
@@ -78,11 +86,38 @@
 </section>
 <div id="footer-placeholder"></div>
 <div id="chat-placeholder"></div>
+<script src="/js/firebase-config.js"></script>
 <script src="/js/layout.js"></script>
 <script src="/js/chat-widget.js"></script>
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getSiteConfig } from '/js/app.js';
+
+  // Load contact page content from site config
+  getSiteConfig().then(cfg => {
+    if (!cfg) return;
+    if (cfg.address) document.getElementById('contactAddress').innerHTML = cfg.address.replace(/\n/g, '<br>');
+    if (cfg.contactIntro) document.getElementById('contactIntro').textContent = cfg.contactIntro;
+    if (cfg.phone) {
+      document.getElementById('contactPhone').href = `tel:${cfg.phone}`;
+      document.getElementById('contactPhone').textContent = cfg.phone;
+      document.getElementById('contactPhoneWrap').style.display = 'block';
+    }
+    if (cfg.contactEmail) {
+      // Obfuscate email — split so crawlers can't harvest the plain address
+      const parts = cfg.contactEmail.split('@');
+      const el = document.getElementById('contactEmail');
+      el.addEventListener('click', () => { window.location.href = 'mailto:' + parts[0] + '@' + parts[1]; });
+      el.textContent = parts[0] + '\u0040' + parts[1]; // \u0040 = @ as unicode, not in source as plain text
+      el.style.cursor = 'pointer';
+      document.getElementById('contactEmailWrap').style.display = 'block';
+    }
+    if (cfg.contactNote) {
+      document.getElementById('contactNote').textContent = cfg.contactNote;
+      document.getElementById('contactNoteWrap').style.display = 'block';
+    }
+  });
+
   const db = window.__ART_DEPOT_DB;
 
   document.getElementById('contactForm').addEventListener('submit', async e => {

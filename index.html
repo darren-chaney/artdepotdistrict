@@ -15,7 +15,7 @@
 
 <!-- ── Hero ────────────────────────────────────────────── -->
 <section class="hero" id="hero">
-  <div class="hero-bg" id="heroBg" style="background-image:url('/images/district/hero.jpg')"></div>
+  <div class="hero-bg" id="heroBg" style=""></div>
   <div class="hero-overlay"></div>
   <div class="hero-content">
     <p class="hero-welcome">Welcome to the</p>
@@ -36,7 +36,7 @@
       Local Businesses
     </div>
     <div class="feature-card-img">
-      <img src="/images/district/businesses-card.jpg" alt="District businesses" onerror="this.parentElement.innerHTML='<div class=\'feature-card-img-placeholder\'>🏪</div>'">
+      <img id="imgBusinessesCard" src="" alt="District businesses" style="display:none" onerror="this.style.display='none'">
     </div>
     <div class="feature-card-footer">
       View All Businesses <span>&rsaquo;</span>
@@ -48,7 +48,7 @@
       Event Calendar
     </div>
     <div class="feature-card-img">
-      <img src="/images/district/events-card.jpg" alt="District events" onerror="this.parentElement.innerHTML='<div class=\'feature-card-img-placeholder\'>📅</div>'">
+      <img id="imgEventsCard" src="" alt="District events" style="display:none" onerror="this.style.display='none'">
     </div>
     <div class="feature-card-footer">
       View Upcoming Events <span>&rsaquo;</span>
@@ -60,7 +60,7 @@
       Depot Days Festival
     </div>
     <div class="feature-card-img">
-      <img src="/images/district/depot-days-card.jpg" alt="Depot Days festival" onerror="this.parentElement.innerHTML='<div class=\'feature-card-img-placeholder\'>🎪</div>'">
+      <img id="imgDepotDaysCard" src="" alt="Depot Days festival" style="display:none" onerror="this.style.display='none'">
     </div>
     <div class="feature-card-footer">
       Learn More <span>&rsaquo;</span>
@@ -96,7 +96,7 @@
         <div class="carshow-card">
           <div class="carshow-card-header">Car Show Registration</div>
           <div class="carshow-card-img">
-            <img src="/images/district/car-show-card.jpg" alt="Depot Days Car Show" onerror="this.parentElement.innerHTML='<div class=\'carshow-card-img-placeholder\'>🚗</div>'">
+            <img id="imgCarShowCard" src="" alt="Depot Days Car Show" style="display:none" onerror="this.style.display='none'">
           </div>
           <div class="carshow-card-body">
             <h3>Register Your Vehicle for the Depot Days Car Show!</h3>
@@ -112,7 +112,7 @@
 
 <!-- ── Depot Days Banner ─────────────────────────────────── -->
 <div class="depot-days-banner">
-  <div class="depot-days-bg" id="depotDaysBg" style="background-image:url('/images/district/depot-days-banner.jpg')"></div>
+  <div class="depot-days-bg" id="depotDaysBg" style=""></div>
   <div class="depot-days-overlay"></div>
   <div class="container">
     <div class="depot-days-content">
@@ -171,6 +171,14 @@
 <div id="chat-placeholder"></div>
 
 <script src="/js/firebase-config.js"></script>
+<script type="module">
+  import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { initializeFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  if (!window.__ART_DEPOT_DB && window.__ART_DEPOT_CONFIG) {
+    const app = getApps().length ? getApps()[0] : initializeApp(window.__ART_DEPOT_CONFIG);
+    window.__ART_DEPOT_DB = initializeFirestore(app, { experimentalForceLongPolling: true });
+  }
+</script>
 <script src="/js/layout.js"></script>
 <script src="/js/chat-widget.js"></script>
 <script type="module">
@@ -178,10 +186,18 @@
 
   // Site config
   getSiteConfig().then(cfg => {
-    if (cfg.heroImage)   document.getElementById('heroBg').style.backgroundImage = `url(${cfg.heroImage})`;
+    if (cfg.heroImage)   { const el = document.getElementById('heroBg'); el.style.backgroundImage = `url(${cfg.heroImage})`; }
     if (cfg.heroTagline) document.getElementById('heroSubtitle').textContent = cfg.heroTagline;
     if (cfg.address)     document.getElementById('districtAddress').innerHTML = cfg.address.replace(/\n/g,'<br>');
     if (cfg.socials?.facebook) document.getElementById('homeFacebook').href = cfg.socials.facebook;
+
+    // Feature card images
+    const cards = { imgBusinessesCard:'cardBusinesses', imgEventsCard:'cardEvents', imgDepotDaysCard:'cardDepotDays', imgCarShowCard:'cardCarShow' };
+    Object.entries(cards).forEach(([imgId, cfgKey]) => {
+      const img = document.getElementById(imgId);
+      const url = cfg[cfgKey];
+      if (img && url) { img.src = url; img.style.display = 'block'; }
+    });
 
     // Load events from Google Calendar
     if (cfg.calendarId && cfg.googleApiKey) {

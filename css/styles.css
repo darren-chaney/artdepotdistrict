@@ -351,7 +351,7 @@ p  { color: var(--text-secondary); line-height: 1.75; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-group.full { grid-column: 1/-1; }
 .form-label { font-family: var(--font-body); font-size: 0.72rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--text-secondary); }
-.form-input, .form-select, .form-textarea { background: #fff; border: 1px solid var(--border-dark); border-radius: var(--radius); color: var(--text-primary); padding: 10px 13px; font-family: var(--font-body); font-size: 0.95rem; transition: border-color var(--transition); outline: none; }
+.form-input, .form-select, .form-textarea { background: #fff; border: 1px solid var(--border-dark); border-radius: var(--radius); color: var(--text-primary); padding: 10px 13px; font-family: var(--font-body); font-size: 16px; transition: border-color var(--transition); outline: none; }
 .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(30,58,92,0.1); }
 .form-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a5568' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
 .form-textarea { resize: vertical; min-height: 120px; }
@@ -435,7 +435,7 @@ p  { color: var(--text-secondary); line-height: 1.75; }
 .chat-typing span:nth-child(3) { animation-delay: .4s; }
 @keyframes typingDot { 0%,60%,100%{opacity:.3} 30%{opacity:1} }
 .chat-input-wrap { padding: 10px 12px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; background: #fff; }
-.chat-input { flex: 1; background: var(--bg-surface); border: 1px solid var(--border-dark); border-radius: var(--radius); padding: 9px 12px; color: var(--text-primary); font-size: 0.88rem; outline: none; }
+.chat-input { flex: 1; background: var(--bg-surface); border: 1px solid var(--border-dark); border-radius: var(--radius); padding: 9px 12px; color: var(--text-primary); font-size: 16px; outline: none; }
 .chat-input:focus { border-color: var(--navy); }
 .chat-send { background: var(--navy); color: #fff; border-radius: var(--radius); padding: 9px 14px; font-size: 1rem; cursor: pointer; transition: background var(--transition); display: flex; align-items: center; }
 .chat-send:hover { background: var(--navy-light); }
@@ -478,6 +478,8 @@ p  { color: var(--text-secondary); line-height: 1.75; }
   .events-layout { grid-template-columns: 1fr; }
   .depot-days-content { grid-template-columns: 1fr; }
   .footer-inner { grid-template-columns: 1fr 1fr; }
+  .carshow-layout { grid-template-columns: 1fr !important; }
+  .carshow-sidebar { position: static !important; }
 }
 @media (max-width: 640px) {
   .section { padding: 48px 0; }
@@ -489,5 +491,13 @@ p  { color: var(--text-secondary); line-height: 1.75; }
   .form-group.full { grid-column: auto; }
   .admin-wrap { flex-direction: column; }
   .admin-sidebar { width: 100%; }
-  .chat-window { width: calc(100vw - 32px); right: 16px; }
+  .chat-window {
+    width: calc(100vw - 24px);
+    right: 12px;
+    left: 12px;
+    bottom: 80px;
+    height: calc(100vh - 120px);
+    max-height: 520px;
+  }
+  .chat-trigger { bottom: 16px; right: 16px; }
 }

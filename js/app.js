@@ -1,17 +1,16 @@
 // Art Depot District — Main App JS
 
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, getDoc, addDoc, query, where, orderBy, serverTimestamp }
+import { getFirestore, initializeFirestore, collection, getDocs, doc, getDoc, addDoc, query, where, orderBy, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ── Init ─────────────────────────────────────────────────
-// Get db lazily so config is always loaded first
 function getDB() {
   if (window.__ART_DEPOT_DB) return window.__ART_DEPOT_DB;
   const cfg = window.__ART_DEPOT_CONFIG;
   if (!cfg) { console.error('firebase-config.js not loaded'); return null; }
   const app = getApps().length ? getApps()[0] : initializeApp(cfg);
-  const db  = getFirestore(app);
+  const db  = initializeFirestore(app, { experimentalForceLongPolling: true });
   window.__ART_DEPOT_DB = db;
   return db;
 }

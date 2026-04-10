@@ -20,7 +20,7 @@
 </div>
 
 <section class="section">
-  <div class="container" style="display:grid;grid-template-columns:1fr 380px;gap:64px;align-items:start">
+  <div class="container carshow-layout" style="display:grid;grid-template-columns:1fr 380px;gap:64px;align-items:start">
 
     <!-- Registration Form -->
     <div>
@@ -128,7 +128,12 @@
 
     <!-- Sidebar Info -->
     <aside>
-      <div class="biz-info-card" style="position:sticky;top:calc(var(--nav-height) + 20px)">
+      <!-- Poster — shown when uploaded -->
+      <div id="posterWrap" style="display:none;margin-bottom:24px">
+        <img id="carShowPoster" src="" alt="Car Show Poster"
+          style="width:100%;border-radius:var(--radius-lg);border:1px solid var(--border);box-shadow:0 4px 24px rgba(0,0,0,.18)">
+      </div>
+      <div class="biz-info-card carshow-sidebar" style="position:sticky;top:calc(var(--nav-height) + 20px)">
         <h5 style="margin-bottom:20px">Car Show Info</h5>
         <div style="display:flex;flex-direction:column;gap:16px">
           <div>
@@ -160,6 +165,7 @@
 <div id="footer-placeholder"></div>
 <div id="chat-placeholder"></div>
 
+<script src="/js/firebase-config.js"></script>
 <script src="/js/layout.js"></script>
 <script src="/js/chat-widget.js"></script>
 <script type="module">
@@ -170,6 +176,10 @@
     if (!dd) return;
     if (dd.carShowDate)  document.getElementById('csDate').textContent = dd.carShowDate;
     if (dd.carShowEntry) document.getElementById('csEntry').textContent = dd.carShowEntry;
+    if (dd.carShowPoster) {
+      document.getElementById('carShowPoster').src = dd.carShowPoster;
+      document.getElementById('posterWrap').style.display = 'block';
+    }
   });
 
   const form     = document.getElementById('carShowForm');

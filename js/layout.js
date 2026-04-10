@@ -44,13 +44,14 @@ const FOOTER_HTML = `
     <div class="footer-inner">
       <div class="footer-brand">
         <div class="footer-brand-logo">Art Depot District</div>
-        <div class="footer-brand-sub">Explore &bull; Create &bull; Discover</div>
-        <p>A destination for art, community, food, and culture in the heart of Covington, Tennessee.</p>
+        <div class="footer-brand-sub" id="footerTagline">Explore &bull; Create &bull; Discover</div>
+        <p id="footerDesc">A destination for art, community, food, and culture in the heart of Covington, Tennessee.</p>
+        <div id="footerContactInfo" style="margin-top:12px;display:flex;flex-direction:column;gap:6px"></div>
         <div class="footer-social">
           <a href="#" id="footerFacebook" target="_blank" aria-label="Facebook">F</a>
           <a href="#" id="footerInstagram" target="_blank" aria-label="Instagram">IG</a>
         </div>
-        <p style="margin-top:14px;font-size:.74rem;color:rgba(255,255,255,.28)">Powered by Google Analytics</p>
+        <p style="margin-top:14px;font-size:.74rem;color:rgba(255,255,255,.28)">Powered by DistilCore</p>
       </div>
       <div class="footer-col">
         <h5>Explore</h5>
@@ -71,7 +72,7 @@ const FOOTER_HTML = `
       </div>
     </div>
     <div class="footer-bottom">
-      <p>&copy; ${new Date().getFullYear()} Art Depot District &mdash; Covington, Tennessee</p>
+      <p id="footerCopyright">&copy; ${new Date().getFullYear()} Art Depot District &mdash; Covington, Tennessee</p>
       <div class="footer-bottom-links">
         <a href="/contact.html">Contact</a>
         <a href="#">Privacy Policy</a>
@@ -104,7 +105,7 @@ function injectLayout() {
     }
   });
 
-  // Inject social links from site config if available
+  // Inject social links and footer content from site config if available
   if (window.__ART_DEPOT_DB) {
     import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js').then(({ doc, getDoc }) => {
       getDoc(doc(window.__ART_DEPOT_DB, 'site_config', 'main')).then(snap => {
@@ -112,6 +113,37 @@ function injectLayout() {
         const cfg = snap.data();
         if (cfg.socials?.facebook)  { document.querySelectorAll('#navFacebook,#footerFacebook').forEach(a => a.href = cfg.socials.facebook); }
         if (cfg.socials?.instagram) { document.querySelectorAll('#navInstagram,#footerInstagram').forEach(a => a.href = cfg.socials.instagram); }
+        if (cfg.footerTagline) {
+          const el = document.getElementById('footerTagline');
+          if (el) el.textContent = cfg.footerTagline;
+        }
+        if (cfg.footerDesc) {
+          const el = document.getElementById('footerDesc');
+          if (el) el.textContent = cfg.footerDesc;
+        }
+        if (cfg.footerCopyright) {
+          const el = document.getElementById('footerCopyright');
+          if (el) el.textContent = `© ${new Date().getFullYear()} ${cfg.footerCopyright}`;
+        }
+        // Footer contact info
+        const contactInfo = document.getElementById('footerContactInfo');
+        if (contactInfo) {
+          const lines = [];
+          if (cfg.address) lines.push(`<span style="font-size:.8rem;color:rgba(255,255,255,.55)">${cfg.address.split('\n')[0]}</span>`);
+          if (cfg.phone)   lines.push(`<a href="tel:${cfg.phone}" style="font-size:.8rem;color:rgba(255,255,255,.55);text-decoration:none">${cfg.phone}</a>`);
+          if (cfg.contactEmail) {
+            const p = cfg.contactEmail.split('@');
+            lines.push(`<a data-email="${p[0]}|${p[1]}" style="font-size:.8rem;color:rgba(255,255,255,.55);text-decoration:none;cursor:pointer">${p[0]}\u0040${p[1]}</a>`);
+          }
+          contactInfo.innerHTML = lines.join('');
+          // Wire obfuscated email clicks
+          contactInfo.querySelectorAll('[data-email]').forEach(a => {
+            a.addEventListener('click', () => {
+              const parts = a.dataset.email.split('|');
+              window.location.href = 'mailto:' + parts[0] + '@' + parts[1];
+            });
+          });
+        }
       });
     });
   }
