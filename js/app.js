@@ -65,17 +65,20 @@ export async function getDepotDays(year) {
 }
 
 // ── FAQs ─────────────────────────────────────────────────
-export async function getFAQs() {
+export async function getFAQs(category = null) {
   try {
     const db = getDB(); if (!db) return [];
-    // Try with published+order first, fall back to all FAQs if index missing
     try {
-      const q = query(collection(db,'faqs'), where('published','==',true), orderBy('order','asc'));
+      let q = category
+        ? query(collection(db,'faqs'), where('published','==',true), where('category','==',category), orderBy('order','asc'))
+        : query(collection(db,'faqs'), where('published','==',true), orderBy('order','asc'));
       const snap = await getDocs(q);
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch {
+      // Fallback if composite index not built yet
       const snap = await getDocs(collection(db,'faqs'));
-      return snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(f => f.published !== false);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .filter(f => f.published !== false && (!category || f.category === category));
     }
   } catch(e) { console.error('getFAQs:', e); return []; }
 }
