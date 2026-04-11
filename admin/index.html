@@ -229,6 +229,13 @@
         </div>
         <div class="form-row full">
           <div class="form-group">
+            <label class="form-label">Festival Schedule <span style="font-weight:400;color:var(--text-muted)">— shown as cards on the Depot Days page</span></label>
+            <div id="ddScheduleList" style="display:flex;flex-direction:column;gap:10px;margin-top:8px"></div>
+            <button type="button" onclick="addScheduleRow()" class="btn btn-outline" style="margin-top:12px;font-size:.82rem;padding:8px 18px">+ Add Schedule Item</button>
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
             <label class="form-label">Vendors (one per line)</label>
             <textarea class="form-textarea" id="ddVendors" placeholder="Vendor Name&#10;Another Vendor"></textarea>
           </div>
@@ -920,6 +927,11 @@ async function loadDepotDays() {
   if (dd.bannerImage) { ddPrev.src = dd.bannerImage; ddPrev.style.display = 'block'; } else { ddPrev.style.display = 'none'; }
   document.getElementById('ddVendors').value     = (dd.vendors||[]).join('\n');
   document.getElementById('ddSponsors').value    = (dd.sponsors||[]).join('\n');
+  // Load schedule rows
+  document.getElementById('ddScheduleList').innerHTML = '';
+  const schedule = dd.schedule || [];
+  if (schedule.length) { schedule.forEach(s => addScheduleRow(s)); }
+  else { addScheduleRow(); }
 }
 window.saveDepotDays = async () => {
   const year = document.getElementById('ddYear').value || new Date().getFullYear().toString();
@@ -928,6 +940,11 @@ window.saveDepotDays = async () => {
     tagline:     document.getElementById('ddTagline').value.trim(),
     overview:    document.getElementById('ddOverview').value.trim(),
     bannerImage: document.getElementById('ddBanner').value.trim(),
+    schedule: Array.from(document.querySelectorAll('.sched-row')).map(row => ({
+      time:        row.querySelector('.sched-time').value.trim(),
+      title:       row.querySelector('.sched-title').value.trim(),
+      description: row.querySelector('.sched-desc').value.trim(),
+    })).filter(s => s.title),
     vendors:  document.getElementById('ddVendors').value.split('\n').map(s=>s.trim()).filter(Boolean),
     sponsors: document.getElementById('ddSponsors').value.split('\n').map(s=>s.trim()).filter(Boolean),
     updatedAt: serverTimestamp(),
@@ -1125,6 +1142,30 @@ window.addCalendarRow = (source = {}) => {
     <input class="cal-color" type="color" value="${source.color||'#1e3a5c'}" title="Label color" style="width:40px;height:38px;padding:2px;border:1px solid var(--border);border-radius:6px;cursor:pointer">
     <button type="button" onclick="this.closest('.cal-source-row').remove()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;color:var(--text-muted);font-size:1rem">✕</button>`;
   document.getElementById('calendarSourcesList').appendChild(row);
+};
+
+// ── Schedule Rows ────────────────────────────────────────
+window.addScheduleRow = (item = {}) => {
+  const row = document.createElement('div');
+  row.className = 'sched-row';
+  row.style.cssText = 'display:grid;grid-template-columns:160px 1fr 2fr auto;gap:8px;align-items:start;background:var(--bg-secondary);padding:12px;border-radius:8px;border:1px solid var(--border)';
+  row.innerHTML = `
+    <div>
+      <div style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px">Time</div>
+      <input class="form-input sched-time" type="text" placeholder="e.g. Morning" value="${item.time||''}" style="font-size:.85rem">
+    </div>
+    <div>
+      <div style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px">Title</div>
+      <input class="form-input sched-title" type="text" placeholder="e.g. Gates Open" value="${item.title||''}" style="font-size:.85rem">
+    </div>
+    <div>
+      <div style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px">Description</div>
+      <input class="form-input sched-desc" type="text" placeholder="e.g. Festival grounds open to the public." value="${item.description||''}" style="font-size:.85rem">
+    </div>
+    <div style="padding-top:22px">
+      <button type="button" onclick="this.closest('.sched-row').remove()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;color:var(--text-muted);font-size:1rem">✕</button>
+    </div>`;
+  document.getElementById('ddScheduleList').appendChild(row);
 };
 
 // ── Modal util ────────────────────────────────────────────
