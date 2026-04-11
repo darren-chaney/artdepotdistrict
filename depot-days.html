@@ -12,16 +12,16 @@
     .schedule-block { background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px; }
     .schedule-block h4 { font-size:1rem;margin-bottom:6px; }
     .schedule-block .time { font-family:var(--font-ui);font-size:0.78rem;color:var(--accent);letter-spacing:.08em;margin-bottom:12px; }
-    .faq-item { border-bottom:1px solid var(--border);padding:24px 0; }
+    .faq-item { border-bottom:1px solid rgba(255,255,255,0.12);padding:24px 0; }
     .faq-item:first-child { padding-top:0; }
-    .faq-q { font-family:var(--font-display);font-size:1.2rem;font-weight:600;margin-bottom:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center; }
-    .faq-a { color:var(--text-secondary);font-size:1rem;display:none; }
+    .faq-q { font-family:var(--font-display);font-size:1.2rem;font-weight:600;margin-bottom:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;color:rgba(240,230,206,0.92); }
+    .faq-a { color:rgba(240,230,206,0.65);font-size:1rem;display:none;line-height:1.7; }
     .faq-item.open .faq-a { display:block; }
     .faq-item.open .faq-arrow { transform:rotate(180deg); }
     .faq-arrow { transition:transform .2s;color:var(--accent); }
     .sponsor-grid { display:flex;flex-wrap:wrap;gap:16px;margin-top:24px; }
     .sponsor-chip { background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 20px;font-family:var(--font-ui);font-size:.82rem;color:var(--text-secondary); }
-  </style>token=76b17545-19d3-41c4-bb0e-d181f2213ae8">token=76b17545-19d3-41c4-bb0e-d181f2213ae8">
+  </style>
   <meta property="og:image" content="https://firebasestorage.googleapis.com/v0/b/artdepotdistrict.firebasestorage.app/o/artdepotdistrict-og-image.png?alt=media&token=76b17545-19d3-41c4-bb0e-d181f2213ae8">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -104,20 +104,7 @@
     <span class="eyebrow">Questions</span>
     <h2>FAQs</h2>
     <div class="divider"></div>
-    <div id="ddFaqs">
-      <div class="faq-item">
-        <div class="faq-q">Is Depot Days free to attend? <span class="faq-arrow">&#x25BE;</span></div>
-        <div class="faq-a">Yes, general admission to the Depot Days festival grounds is free. The car show has a separate registration fee for entrants.</div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-q">Where do I park? <span class="faq-arrow">&#x25BE;</span></div>
-        <div class="faq-a">Free parking is available throughout the district. Additional overflow parking details will be posted closer to the event.</div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-q">Can I register my car the day of? <span class="faq-arrow">&#x25BE;</span></div>
-        <div class="faq-a">Pre-registration is strongly encouraged so we can plan for the number of vehicles. Day-of registration may be available on a limited basis.</div>
-      </div>
-    </div>
+    <div id="ddFaqs"><div class="empty-state"><div class="loading-spinner"></div></div></div>
   </div>
 </section>
 
@@ -141,7 +128,7 @@
 <script src="/js/layout.js"></script>
 <script src="/js/chat-widget.js"></script>
 <script type="module">
-  import { getDepotDays } from '/js/app.js';
+  import { getDepotDays, getFAQs } from '/js/app.js';
 
   getDepotDays().then(dd => {
     if (!dd) return;
@@ -170,10 +157,32 @@
     }
   });
 
-  // FAQ toggles
-  document.querySelectorAll('.faq-q').forEach(q => {
-    q.addEventListener('click', () => q.closest('.faq-item').classList.toggle('open'));
-  });
+  // ── FAQs from Firestore with fallback ─────────────────
+  const FALLBACK_FAQS = [
+    { question: 'Is Depot Days free to attend?', answer: 'Yes, general admission to the Depot Days festival grounds is free. The car show has a separate registration fee for entrants.' },
+    { question: 'Where do I park?', answer: 'Free parking is available throughout the district. Additional overflow parking details will be posted closer to the event.' },
+    { question: 'Can I register my car the day of?', answer: 'Pre-registration is strongly encouraged so we can plan for the number of vehicles. Day-of registration may be available on a limited basis.' },
+  ];
+
+  function renderFAQs(faqs) {
+    const container = document.getElementById('ddFaqs');
+    if (!faqs.length) {
+      container.innerHTML = '<p style="color:rgba(240,230,206,0.6)">No FAQs yet. Check back soon.</p>';
+      return;
+    }
+    container.innerHTML = faqs.map(f => `
+      <div class="faq-item">
+        <div class="faq-q">${f.question} <span class="faq-arrow">&#x25BE;</span></div>
+        <div class="faq-a">${f.answer}</div>
+      </div>`).join('');
+    container.querySelectorAll('.faq-q').forEach(q => {
+      q.addEventListener('click', () => q.closest('.faq-item').classList.toggle('open'));
+    });
+  }
+
+  getFAQs().then(faqs => {
+    renderFAQs(faqs.length ? faqs : FALLBACK_FAQS);
+  }).catch(() => renderFAQs(FALLBACK_FAQS));
 </script>
 </body>
 </html>
