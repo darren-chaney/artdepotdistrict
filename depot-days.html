@@ -157,17 +157,11 @@
     }
   });
 
-  // ── FAQs from Firestore with fallback ─────────────────
-  const FALLBACK_FAQS = [
-    { question: 'Is Depot Days free to attend?', answer: 'Yes, general admission to the Depot Days festival grounds is free. The car show has a separate registration fee for entrants.' },
-    { question: 'Where do I park?', answer: 'Free parking is available throughout the district. Additional overflow parking details will be posted closer to the event.' },
-    { question: 'Can I register my car the day of?', answer: 'Pre-registration is strongly encouraged so we can plan for the number of vehicles. Day-of registration may be available on a limited basis.' },
-  ];
-
+  // ── FAQs from Firestore ───────────────────────────────
   function renderFAQs(faqs) {
     const container = document.getElementById('ddFaqs');
     if (!faqs.length) {
-      container.innerHTML = '<p style="color:rgba(240,230,206,0.6)">No FAQs yet. Check back soon.</p>';
+      container.innerHTML = '<p style="color:rgba(240,230,206,0.6)">No FAQs added yet.</p>';
       return;
     }
     container.innerHTML = faqs.map(f => `
@@ -180,9 +174,7 @@
     });
   }
 
-  getFAQs().then(faqs => {
-    renderFAQs(faqs.length ? faqs : FALLBACK_FAQS);
-  }).catch(() => renderFAQs(FALLBACK_FAQS));
+  getFAQs().then(renderFAQs).catch(() => renderFAQs([]));
 </script>
 </body>
 </html>

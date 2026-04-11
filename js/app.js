@@ -68,9 +68,15 @@ export async function getDepotDays(year) {
 export async function getFAQs() {
   try {
     const db = getDB(); if (!db) return [];
-    const q = query(collection(db,'faqs'), where('published','==',true), orderBy('order','asc'));
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Try with published+order first, fall back to all FAQs if index missing
+    try {
+      const q = query(collection(db,'faqs'), where('published','==',true), orderBy('order','asc'));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch {
+      const snap = await getDocs(collection(db,'faqs'));
+      return snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(f => f.published !== false);
+    }
   } catch(e) { console.error('getFAQs:', e); return []; }
 }
 
