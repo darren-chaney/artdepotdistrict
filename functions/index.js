@@ -496,49 +496,100 @@ async function getAnalyticsData(propertyId, startDate, endDate) {
 }
 
 function buildReportEmail(data, dateLabel, districtName) {
-  const topPagesRows = data.topPages.map(p =>
-    `<tr>
-      <td style="padding:8px;border-bottom:1px solid #eee">${p.path}</td>
-      <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${p.views}</td>
-    </tr>`
-  ).join("");
+  const topPagesRows = data.topPages.length
+    ? data.topPages.map((p, i) => {
+        const barWidth = data.topPages[0].views > 0
+          ? Math.round((p.views / data.topPages[0].views) * 100)
+          : 0;
+        const pageName = p.path === "/" ? "Home" :
+          p.path.replace(/\.html$/, "").replace(/^\//, "")
+               .replace(/-/g," ").replace(/\b\w/g, c => c.toUpperCase());
+        return `<tr>
+          <td style="padding:10px 12px;border-bottom:1px solid #f0ebe3">
+            <div style="font-size:13px;color:#222;font-weight:500;margin-bottom:4px">${pageName}</div>
+            <div style="font-size:11px;color:#999">${p.path}</div>
+            <div style="margin-top:5px;height:4px;background:#f0ebe3;border-radius:2px">
+              <div style="height:4px;width:${barWidth}%;background:#b83535;border-radius:2px"></div>
+            </div>
+          </td>
+          <td style="padding:10px 12px;border-bottom:1px solid #f0ebe3;text-align:right;font-size:14px;font-weight:bold;color:#1e3a5c;white-space:nowrap">${p.views}</td>
+        </tr>`;
+      }).join("")
+    : '<tr><td colspan="2" style="padding:16px;text-align:center;color:#aaa;font-size:13px">No page data yet — check back tomorrow</td></tr>';
 
-  return `
-    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-      <div style="background:#1e3a5c;padding:24px;color:white">
-        <h2 style="margin:0">Daily Traffic Report</h2>
-        <p style="margin:4px 0 0;opacity:.8">${districtName} — ${dateLabel}</p>
-      </div>
-      <div style="padding:24px;border:1px solid #e5e5e5">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:28px">
-          <div style="background:#f4efe6;padding:16px;border-radius:8px;text-align:center">
-            <div style="font-size:2rem;font-weight:bold;color:#1e3a5c">${data.sessions}</div>
-            <div style="font-size:11px;color:#666;text-transform:uppercase;margin-top:4px">Sessions</div>
+  const now = new Date().toLocaleTimeString("en-US", { hour:"numeric", minute:"2-digit", timeZone:"America/Chicago" });
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4efe6;font-family:Georgia,serif">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+
+  <!-- Header -->
+  <div style="background:#1e3a5c;border-radius:12px 12px 0 0;padding:32px 32px 28px;color:white">
+    <div style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.6;margin-bottom:8px">Daily Traffic Report</div>
+    <h1 style="margin:0 0 6px;font-size:26px;font-weight:700;letter-spacing:-.3px">${districtName}</h1>
+    <div style="font-family:Arial,sans-serif;font-size:14px;opacity:.75">${dateLabel}</div>
+  </div>
+
+  <!-- Stats Row -->
+  <div style="background:white;padding:28px 32px;display:block">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+      <tr>
+        <td width="33%" style="text-align:center;padding:16px 8px">
+          <div style="background:#f4efe6;border-radius:10px;padding:20px 12px">
+            <div style="font-size:36px;font-weight:700;color:#1e3a5c;line-height:1">${data.sessions}</div>
+            <div style="font-family:Arial,sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-top:6px">Sessions</div>
           </div>
-          <div style="background:#f4efe6;padding:16px;border-radius:8px;text-align:center">
-            <div style="font-size:2rem;font-weight:bold;color:#1e3a5c">${data.visitors}</div>
-            <div style="font-size:11px;color:#666;text-transform:uppercase;margin-top:4px">Visitors</div>
+        </td>
+        <td width="33%" style="text-align:center;padding:16px 8px">
+          <div style="background:#f4efe6;border-radius:10px;padding:20px 12px">
+            <div style="font-size:36px;font-weight:700;color:#1e3a5c;line-height:1">${data.visitors}</div>
+            <div style="font-family:Arial,sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-top:6px">Visitors</div>
           </div>
-          <div style="background:#f4efe6;padding:16px;border-radius:8px;text-align:center">
-            <div style="font-size:2rem;font-weight:bold;color:#1e3a5c">${data.pageViews}</div>
-            <div style="font-size:11px;color:#666;text-transform:uppercase;margin-top:4px">Page Views</div>
+        </td>
+        <td width="33%" style="text-align:center;padding:16px 8px">
+          <div style="background:#f4efe6;border-radius:10px;padding:20px 12px">
+            <div style="font-size:36px;font-weight:700;color:#b83535;line-height:1">${data.pageViews}</div>
+            <div style="font-family:Arial,sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-top:6px">Page Views</div>
           </div>
-        </div>
-        <h4 style="color:#1e3a5c;margin:0 0 12px">Top Pages</h4>
-        <table style="width:100%;border-collapse:collapse">
-          <thead>
-            <tr style="background:#1e3a5c;color:white">
-              <th style="padding:8px;text-align:left">Page</th>
-              <th style="padding:8px;text-align:right">Views</th>
-            </tr>
-          </thead>
-          <tbody>${topPagesRows || '<tr><td colspan="2" style="padding:8px;color:#888">No page data</td></tr>'}</tbody>
-        </table>
-      </div>
-      <div style="padding:12px 24px;background:#f9f9f9;border:1px solid #e5e5e5;border-top:none;font-size:12px;color:#999">
-        ${districtName} — artdepotdistrict.com
-      </div>
-    </div>`;
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Divider -->
+  <div style="background:white;padding:0 32px"><div style="border-top:1px solid #f0ebe3"></div></div>
+
+  <!-- Top Pages -->
+  <div style="background:white;padding:24px 32px 8px">
+    <div style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#b83535;margin-bottom:16px">Top Pages</div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+      <tr style="background:#f4efe6">
+        <th style="padding:8px 12px;text-align:left;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#666">Page</th>
+        <th style="padding:8px 12px;text-align:right;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#666">Views</th>
+      </tr>
+      ${topPagesRows}
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div style="background:#1e3a5c;border-radius:0 0 12px 12px;padding:20px 32px;display:flex">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="font-family:Arial,sans-serif;font-size:12px;color:rgba(255,255,255,.5)">
+          ${districtName} &mdash; <a href="https://artdepotdistrict.com" style="color:rgba(255,255,255,.6);text-decoration:none">artdepotdistrict.com</a>
+        </td>
+        <td style="font-family:Arial,sans-serif;font-size:12px;color:rgba(255,255,255,.4);text-align:right">
+          Sent ${now} CT
+        </td>
+      </tr>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>`;
 }
 
 // ── Daily Analytics Report — 8am CT ───────────────────────
