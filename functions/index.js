@@ -451,6 +451,280 @@ exports.weeklyReport = onSchedule(
   }
 );
 
+
+// ── Google Analytics Helpers ──────────────────────────────
+const { BetaAnalyticsDataClient } = require("@google-analytics/data");
+const GA_SERVICE_ACCOUNT_KEY = defineSecret("GA_SERVICE_ACCOUNT_KEY");
+const GA_PROPERTY_ID = "533664712";
+
+async function getAnalyticsData(propertyId, startDate, endDate) {
+  const client = new BetaAnalyticsDataClient({
+    credentials: JSON.parse(GA_SERVICE_ACCOUNT_KEY.value()),
+  });
+
+  // Overall metrics
+  const [metricsResponse] = await client.runReport({
+    property: `properties/${propertyId}`,
+    dateRanges: [{ startDate, endDate }],
+    metrics: [
+      { name: "sessions" },
+      { name: "activeUsers" },
+      { name: "screenPageViews" },
+    ],
+  });
+
+  const sessions   = parseInt(metricsResponse.rows?.[0]?.metricValues?.[0]?.value || "0");
+  const visitors   = parseInt(metricsResponse.rows?.[0]?.metricValues?.[1]?.value || "0");
+  const pageViews  = parseInt(metricsResponse.rows?.[0]?.metricValues?.[2]?.value || "0");
+
+  // Top pages
+  const [pagesResponse] = await client.runReport({
+    property: `properties/${propertyId}`,
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [{ name: "pagePath" }],
+    metrics: [{ name: "screenPageViews" }],
+    orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
+    limit: 5,
+  });
+
+  const topPages = (pagesResponse.rows || []).map(row => ({
+    path:  row.dimensionValues?.[0]?.value || "/",
+    views: parseInt(row.metricValues?.[0]?.value || "0"),
+  }));
+
+  return { sessions, visitors, pageViews, topPages };
+}
+
+function buildReportEmail(data, dateLabel, districtName) {
+  const topPagesRows = data.topPages.map(p =>
+    `<tr>
+      <td style="padding:8px;border-bottom:1px solid #eee">${p.path}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${p.views}</td>
+    </tr>`
+  ).join("");
+
+  return `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+      <div style="background:#1e3a5c;padding:24px;color:white">
+        <h2 style="margin:0">Daily Traffic Report</h2>
+        <p style="margin:4px 0 0;opacity:.8">${districtName} — ${dateLabel}</p>
+      </div>
+      <div style="padding:24px;border:1px solid #e5e5e5">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:28px">
+          <div style="background:#f4efe6;padding:16px;border-radius:8px;text-align:center">
+            <div style="font-size:2rem;font-weight:bold;color:#1e3a5c">${data.sessions}</div>
+            <div style="font-size:11px;color:#666;text-transform:uppercase;margin-top:4px">Sessions</div>
+          </div>
+          <div style="background:#f4efe6;padding:16px;border-radius:8px;text-align:center">
+            <div style="font-size:2rem;font-weight:bold;color:#1e3a5c">${data.visitors}</div>
+            <div style="font-size:11px;color:#666;text-transform:uppercase;margin-top:4px">Visitors</div>
+          </div>
+          <div style="background:#f4efe6;padding:16px;border-radius:8px;text-align:center">
+            <div style="font-size:2rem;font-weight:bold;color:#1e3a5c">${data.pageViews}</div>
+            <div style="font-size:11px;color:#666;text-transform:uppercase;margin-top:4px">Page Views</div>
+          </div>
+        </div>
+        <h4 style="color:#1e3a5c;margin:0 0 12px">Top Pages</h4>
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:#1e3a5c;color:white">
+              <th style="padding:8px;text-align:left">Page</th>
+              <th style="padding:8px;text-align:right">Views</th>
+            </tr>
+          </thead>
+          <tbody>${topPagesRows || '<tr><td colspan="2" style="padding:8px;color:#888">No page data</td></tr>'}</tbody>
+        </table>
+      </div>
+      <div style="padding:12px 24px;background:#f9f9f9;border:1px solid #e5e5e5;border-top:none;font-size:12px;color:#999">
+        ${districtName} — artdepotdistrict.com
+      </div>
+    </div>`;
+}
+
+// ── Daily Analytics Report — 8am CT ───────────────────────
+exports.dailyAnalyticsReport = onSchedule(
+  {
+    schedule:  "0 8 * * *",
+    timeZone:  "America/Chicago",
+    secrets:   [RESEND_API_KEY, GA_SERVICE_ACCOUNT_KEY],
+  },
+  async () => {
+    const db = getFirestore();
+
+    // Load config
+    let propertyId  = GA_PROPERTY_ID;
+    let emails      = [];
+    let districtName = "Art Depot District";
+    try {
+      const snap = await db.doc("analytics_config/main").get();
+      if (snap.exists) {
+        const cfg = snap.data();
+        if (cfg.propertyId)   propertyId   = cfg.propertyId;
+        if (cfg.reportEmails) emails        = cfg.reportEmails;
+      }
+      const cfgSnap = await db.doc("site_config/main").get();
+      if (cfgSnap.exists && cfgSnap.data().districtName) {
+        districtName = cfgSnap.data().districtName;
+      }
+    } catch(e) { console.error("Config load failed:", e); }
+
+    if (!emails.length) { console.log("No analytics report emails configured"); return; }
+
+    const yesterday  = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr    = yesterday.toISOString().split("T")[0];
+    const dateLabel  = yesterday.toLocaleDateString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+
+    let data;
+    try {
+      data = await getAnalyticsData(propertyId, dateStr, dateStr);
+    } catch(e) {
+      console.error("GA data fetch failed:", e);
+      return;
+    }
+
+    const html    = buildReportEmail(data, dateLabel, districtName);
+    const resend  = new Resend(RESEND_API_KEY.value());
+
+    try {
+      await resend.emails.send({
+        from:    `${districtName} <events@artdepotdistrict.com>`,
+        to:      emails,
+        subject: `Daily Traffic Report — ${dateLabel}`,
+        html,
+      });
+      console.log(`Analytics report sent to ${emails.length} recipient(s)`);
+    } catch(e) {
+      console.error("Analytics email failed:", e);
+      return;
+    }
+
+    // Save to report history
+    try {
+      await db.collection("analytics_reports").add({
+        date:      dateStr,
+        dateLabel,
+        sessions:  data.sessions,
+        visitors:  data.visitors,
+        pageViews: data.pageViews,
+        topPages:  data.topPages,
+        sentTo:    emails,
+        sentAt:    FieldValue.serverTimestamp(),
+      });
+    } catch(e) { console.error("Failed to save report history:", e); }
+  }
+);
+
+// ── Send Analytics Report Now (admin button) ───────────────
+exports.sendAnalyticsNow = onRequest(
+  { secrets: [RESEND_API_KEY, GA_SERVICE_ACCOUNT_KEY], cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+    const db = getFirestore();
+    let propertyId   = GA_PROPERTY_ID;
+    let emails       = [];
+    let districtName = "Art Depot District";
+
+    try {
+      const snap = await db.doc("analytics_config/main").get();
+      if (snap.exists) {
+        const cfg = snap.data();
+        if (cfg.propertyId)   propertyId = cfg.propertyId;
+        if (cfg.reportEmails) emails     = cfg.reportEmails;
+      }
+      const cfgSnap = await db.doc("site_config/main").get();
+      if (cfgSnap.exists && cfgSnap.data().districtName) {
+        districtName = cfgSnap.data().districtName;
+      }
+    } catch(e) { return res.status(500).json({ error: "Config load failed" }); }
+
+    if (!emails.length) return res.status(400).json({ error: "No report emails configured" });
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr   = yesterday.toISOString().split("T")[0];
+    const dateLabel = yesterday.toLocaleDateString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+
+    let data;
+    try {
+      data = await getAnalyticsData(propertyId, dateStr, dateStr);
+    } catch(e) {
+      console.error("GA data fetch failed:", e);
+      return res.status(500).json({ error: "Failed to fetch analytics data. Check GA permissions." });
+    }
+
+    const html   = buildReportEmail(data, dateLabel, districtName);
+    const resend = new Resend(RESEND_API_KEY.value());
+
+    try {
+      await resend.emails.send({
+        from:    `${districtName} <events@artdepotdistrict.com>`,
+        to:      emails,
+        subject: `Traffic Report — ${dateLabel}`,
+        html,
+      });
+    } catch(e) {
+      return res.status(500).json({ error: "Email send failed" });
+    }
+
+    try {
+      await db.collection("analytics_reports").add({
+        date:      dateStr,
+        dateLabel,
+        sessions:  data.sessions,
+        visitors:  data.visitors,
+        pageViews: data.pageViews,
+        topPages:  data.topPages,
+        sentTo:    emails,
+        sentAt:    FieldValue.serverTimestamp(),
+      });
+    } catch(e) { /* silent */ }
+
+    return res.json({ success: true, sessions: data.sessions, visitors: data.visitors, pageViews: data.pageViews });
+  }
+);
+
+// ── Get Analytics Stats (admin dashboard) ─────────────────
+exports.getAnalyticsStats = onRequest(
+  { secrets: [GA_SERVICE_ACCOUNT_KEY], cors: true },
+  async (req, res) => {
+    if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
+
+    const db = getFirestore();
+    let propertyId = GA_PROPERTY_ID;
+    try {
+      const snap = await db.doc("analytics_config/main").get();
+      if (snap.exists && snap.data().propertyId) propertyId = snap.data().propertyId;
+    } catch(e) { /* use default */ }
+
+    // Yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr = yesterday.toISOString().split("T")[0];
+
+    // Last 30 days
+    const thirtyAgo = new Date();
+    thirtyAgo.setDate(thirtyAgo.getDate() - 30);
+    const thirtyStr = thirtyAgo.toISOString().split("T")[0];
+
+    try {
+      const [yesterday30] = await Promise.all([
+        getAnalyticsData(propertyId, thirtyStr, dateStr),
+      ]);
+      const yesterdayOnly = await getAnalyticsData(propertyId, dateStr, dateStr);
+      return res.json({
+        yesterday: yesterdayOnly,
+        thirtyDays: yesterday30,
+        dateStr,
+      });
+    } catch(e) {
+      console.error("getAnalyticsStats error:", e);
+      return res.status(500).json({ error: e.message });
+    }
+  }
+);
+
 // ── Chat Proxy (existing — unchanged) ─────────────────────
 exports.chat = onRequest(
   { secrets: [ANTHROPIC_API_KEY], cors: true },

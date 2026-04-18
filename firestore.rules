@@ -42,6 +42,14 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // Analytics config and reports — admin only
+    match /analytics_config/{id} {
+      allow read, write: if request.auth != null;
+    }
+    match /analytics_reports/{id} {
+      allow read, write: if request.auth != null;
+    }
+
     // Auth only — chat logs
     match /chat_logs/{id} {
       allow create: if true;

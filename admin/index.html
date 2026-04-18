@@ -89,6 +89,9 @@
     <div class="admin-nav-item" data-panel="reports">
       <span class="admin-nav-icon">📧</span> Reports
     </div>
+    <div class="admin-nav-item" data-panel="analytics">
+      <span class="admin-nav-icon">📈</span> Analytics
+    </div>
     <div class="admin-nav-item" data-panel="config">
       <span class="admin-nav-icon">⚙️</span> Site Config
     </div>
@@ -357,6 +360,90 @@
           <thead><tr><th>Question</th><th>Answer Preview</th><th>Time</th></tr></thead>
           <tbody id="chatTbody"><tr><td colspan="3" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr></tbody>
         </table>
+      </div>
+    </div>
+
+
+    <!-- Analytics -->
+    <div class="admin-panel" id="panel-analytics">
+      <div class="admin-header"><h2>Analytics</h2></div>
+      <p style="margin-bottom:28px;font-size:.95rem;color:var(--text-secondary)">
+        Daily traffic reports are emailed every morning at <strong>8am CT</strong>.
+        Configure recipients below and use <strong>Send Report Now</strong> to test.
+      </p>
+
+      <!-- Stats Cards -->
+      <div class="stat-grid" style="margin-bottom:32px">
+        <div class="stat-card">
+          <div class="stat-num" id="anaYestSessions">—</div>
+          <div class="stat-label">Yesterday Sessions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="anaYestVisitors">—</div>
+          <div class="stat-label">Yesterday Visitors</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="anaYestPageViews">—</div>
+          <div class="stat-label">Yesterday Page Views</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="ana30Sessions">—</div>
+          <div class="stat-label">30-Day Sessions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="ana30Visitors">—</div>
+          <div class="stat-label">30-Day Visitors</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="ana30PageViews">—</div>
+          <div class="stat-label">30-Day Page Views</div>
+        </div>
+      </div>
+
+      <!-- Config -->
+      <div class="admin-card" style="margin-bottom:28px">
+        <h4 style="font-size:1rem;margin-bottom:20px">Analytics Settings</h4>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">GA4 Property ID <span style="font-weight:400;color:var(--text-muted)">(numbers only, not G-XXXXXXXX)</span></label>
+            <input class="form-input" type="text" id="anaPropId" value="533664712">
+          </div>
+        </div>
+        <h4 style="font-size:.9rem;margin:20px 0 6px">Daily Report Recipients</h4>
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:16px">These addresses receive the daily 8am traffic report.</p>
+        <div id="anaEmailList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input class="form-input" type="email" id="newAnaEmail" placeholder="email@example.com" style="flex:1;font-size:.9rem">
+          <button class="btn btn-outline" onclick="addAnaEmail()" style="white-space:nowrap;font-size:.82rem;padding:8px 16px">+ Add</button>
+        </div>
+        <button class="btn btn-primary" onclick="saveAnalyticsConfig()" style="margin-top:20px">Save Settings</button>
+        <span id="anaSaveMsg" style="margin-left:16px;font-size:.85rem;color:var(--accent);display:none">Saved!</span>
+      </div>
+
+      <!-- Send Now -->
+      <div class="admin-card" style="margin-bottom:28px">
+        <h4 style="font-size:1rem;margin-bottom:8px">Daily Traffic Report</h4>
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:16px">
+          Sends a report with yesterday's sessions, visitors, page views, and top pages to all configured recipients.
+          Reports are also sent automatically every morning at 8am CT.
+        </p>
+        <button class="btn btn-primary" id="anaSendNowBtn" onclick="sendAnalyticsNow()">📊 Send Report Now</button>
+        <span id="anaSendMsg" style="margin-left:16px;font-size:.85rem;color:var(--accent);display:none"></span>
+      </div>
+
+      <!-- Report History -->
+      <div class="admin-card">
+        <h4 style="font-size:1rem;margin-bottom:16px">Report History</h4>
+        <div class="admin-card" style="padding:0;overflow:hidden">
+          <table class="admin-table">
+            <thead>
+              <tr><th>Date</th><th>Sessions</th><th>Visitors</th><th>Page Views</th><th>Sent To</th></tr>
+            </thead>
+            <tbody id="anaHistoryTbody">
+              <tr><td colspan="5" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -852,6 +939,7 @@ document.querySelectorAll('.admin-nav-item').forEach(item => {
     if (item.dataset.panel === 'chatlogs')      loadChatLogs();
     if (item.dataset.panel === 'depotdays')     loadDepotDays();
     if (item.dataset.panel === 'config')        loadConfig();
+    if (item.dataset.panel === 'analytics')     loadAnalytics();
     if (item.dataset.panel === 'vendors')       loadVendors();
     if (item.dataset.panel === 'depotdays') {
       // wire toggle label update on change
@@ -1425,6 +1513,143 @@ window.saveReportConfig = async () => {
 // Allow Enter key in email inputs
 document.getElementById('newVendorEmail')?.addEventListener('keydown',  e => { if (e.key==='Enter') addVendorEmail(); });
 document.getElementById('newCarShowEmail')?.addEventListener('keydown', e => { if (e.key==='Enter') addCarShowEmail(); });
+
+
+// ── Analytics Panel ───────────────────────────────────────
+const STATS_URL      = 'https://us-central1-artdepotdistrict.cloudfunctions.net/getAnalyticsStats';
+const SEND_NOW_URL   = 'https://us-central1-artdepotdistrict.cloudfunctions.net/sendAnalyticsNow';
+
+let anaCfg = { propertyId: '533664712', reportEmails: [] };
+
+async function loadAnalytics() {
+  // Load config
+  try {
+    const snap = await getDoc(doc(db,'analytics_config','main'));
+    anaCfg = snap.exists() ? snap.data() : { propertyId:'533664712', reportEmails:[] };
+  } catch(e) { anaCfg = { propertyId:'533664712', reportEmails:[] }; }
+
+  document.getElementById('anaPropId').value = anaCfg.propertyId || '533664712';
+  renderAnaEmailList();
+
+  // Load live stats
+  loadAnalyticsStats();
+
+  // Load report history
+  loadAnalyticsHistory();
+}
+
+async function loadAnalyticsStats() {
+  try {
+    const resp = await fetch(STATS_URL);
+    const data = await resp.json();
+    if (data.error) { console.error('Stats error:', data.error); return; }
+    document.getElementById('anaYestSessions').textContent  = data.yesterday?.sessions  ?? '—';
+    document.getElementById('anaYestVisitors').textContent  = data.yesterday?.visitors  ?? '—';
+    document.getElementById('anaYestPageViews').textContent = data.yesterday?.pageViews ?? '—';
+    document.getElementById('ana30Sessions').textContent    = data.thirtyDays?.sessions  ?? '—';
+    document.getElementById('ana30Visitors').textContent    = data.thirtyDays?.visitors  ?? '—';
+    document.getElementById('ana30PageViews').textContent   = data.thirtyDays?.pageViews ?? '—';
+  } catch(e) { console.error('loadAnalyticsStats:', e); }
+}
+
+async function loadAnalyticsHistory() {
+  try {
+    const snap = await getDocs(collection(db,'analytics_reports'));
+    const reports = snap.docs.map(d => ({ id:d.id, ...d.data() }))
+      .sort((a,b) => (b.sentAt?.seconds||0) - (a.sentAt?.seconds||0))
+      .slice(0,20);
+    const tbody = document.getElementById('anaHistoryTbody');
+    if (!reports.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">No reports sent yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = reports.map(r => {
+      const sentTo = Array.isArray(r.sentTo) ? r.sentTo.join(', ') : r.sentTo || '—';
+      return `<tr>
+        <td style="color:var(--text-primary)">${r.dateLabel || r.date}</td>
+        <td>${r.sessions ?? '—'}</td>
+        <td>${r.visitors ?? '—'}</td>
+        <td>${r.pageViews ?? '—'}</td>
+        <td style="font-size:.8rem;color:var(--text-muted)">${sentTo}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { console.error('loadAnalyticsHistory:', e); }
+}
+
+function renderAnaEmailList() {
+  const emails = anaCfg.reportEmails || [];
+  const wrap   = document.getElementById('anaEmailList');
+  if (!emails.length) {
+    wrap.innerHTML = '<div style="font-size:.85rem;color:var(--text-muted);padding:8px 0">No addresses added yet.</div>';
+    return;
+  }
+  wrap.innerHTML = emails.map((email,i) => `
+    <div style="display:flex;align-items:center;gap:10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px">
+      <span style="flex:1;font-size:.9rem;color:var(--text-primary)">${email}</span>
+      <button onclick="removeAnaEmail(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;padding:0 4px" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+window.addAnaEmail = async () => {
+  const input = document.getElementById('newAnaEmail');
+  const email = input.value.trim().toLowerCase();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { input.style.borderColor='var(--accent)'; return; }
+  input.style.borderColor = '';
+  if (!anaCfg.reportEmails) anaCfg.reportEmails = [];
+  if (anaCfg.reportEmails.includes(email)) { input.value=''; return; }
+  anaCfg.reportEmails.push(email);
+  await saveAnaEmails();
+  input.value = '';
+  renderAnaEmailList();
+};
+
+window.removeAnaEmail = async (index) => {
+  anaCfg.reportEmails.splice(index,1);
+  renderAnaEmailList();
+  await saveAnaEmails();
+};
+
+async function saveAnaEmails() {
+  await setDoc(doc(db,'analytics_config','main'), { reportEmails: anaCfg.reportEmails }, { merge:true });
+}
+
+window.saveAnalyticsConfig = async () => {
+  anaCfg.propertyId = document.getElementById('anaPropId').value.trim();
+  await setDoc(doc(db,'analytics_config','main'), {
+    propertyId:   anaCfg.propertyId,
+    reportEmails: anaCfg.reportEmails || [],
+  }, { merge:true });
+  const msg = document.getElementById('anaSaveMsg');
+  msg.style.display = 'inline';
+  setTimeout(() => msg.style.display = 'none', 2500);
+};
+
+window.sendAnalyticsNow = async () => {
+  const btn = document.getElementById('anaSendNowBtn');
+  const msg = document.getElementById('anaSendMsg');
+  btn.disabled    = true;
+  btn.textContent = 'Sending…';
+  msg.style.display = 'none';
+  try {
+    const resp = await fetch(SEND_NOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+    const data = await resp.json();
+    if (data.success) {
+      msg.textContent   = `✓ Sent! Sessions: ${data.sessions}, Visitors: ${data.visitors}, Page Views: ${data.pageViews}`;
+      msg.style.display = 'inline';
+      loadAnalyticsHistory();
+    } else {
+      msg.textContent   = `Error: ${data.error}`;
+      msg.style.display = 'inline';
+    }
+  } catch(e) {
+    msg.textContent   = 'Send failed — check console';
+    msg.style.display = 'inline';
+  }
+  btn.disabled    = false;
+  btn.textContent = '📊 Send Report Now';
+};
+
+document.getElementById('newAnaEmail')?.addEventListener('keydown', e => { if(e.key==='Enter') addAnaEmail(); });
 
 // ── Modal util ────────────────────────────────────────────
 window.closeModal = (id) => document.getElementById(id).classList.remove('open');
