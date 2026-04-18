@@ -39,7 +39,7 @@ function getLastMonday() {
 // ── PDF Generator ─────────────────────────────────────────
 async function buildVendorPDF(reg, registrationId) {
   const checkinUrl = `https://artdepotdistrict.com/vendor-checkin.html?id=${registrationId}`;
-  const qrBuffer   = await QRCode.toBuffer(checkinUrl, { width: 180, margin: 2, color: { dark: "#1e3a5c", light: "#ffffff" } });
+  const qrBuffer   = await QRCode.toBuffer(checkinUrl, { width: 160, margin: 1, color: { dark: "#1e3a5c", light: "#ffffff" } });
 
   return new Promise((resolve, reject) => {
     const doc    = new PDFDocument({ margin: 50, size: "LETTER" });
@@ -48,92 +48,106 @@ async function buildVendorPDF(reg, registrationId) {
     doc.on("end",   () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    const W = doc.page.width;
+    const W    = doc.page.width;
     const navy = "#1e3a5c";
     const red  = "#b83535";
     const gray = "#666666";
 
-    // ── Header ────────────────────────────────────────────
+    // ── Header: logo left, title right ───────────────────
+    // Logo is square — keep it small so it stays in header zone
     const logoBuffer = Buffer.from(CHAMBER_LOGO_B64, "base64");
-    doc.image(logoBuffer, 50, 45, { width: 210 });
+    doc.image(logoBuffer, 50, 42, { width: 140 });
 
-    doc.fontSize(18).font("Helvetica-Bold").fillColor(navy)
-       .text("VENDOR APPLICATION", 0, 52, { align: "right" });
-    doc.fontSize(11).font("Helvetica").fillColor(red)
-       .text(`DEPOT DAYS ${reg.depotYear || ""} — ART DEPOT DISTRICT`, 0, 76, { align: "right" });
-    doc.fontSize(9).fillColor(gray)
-       .text("Covington, Tennessee", 0, 94, { align: "right" });
+    // Title stacked on right side
+    const titleX = W / 2;
+    doc.fontSize(20).font("Helvetica-Bold").fillColor(navy)
+       .text("VENDOR APPLICATION", titleX, 48, { width: W - titleX - 50, align: "right" });
+    doc.fontSize(10).font("Helvetica-Bold").fillColor(red)
+       .text(`DEPOT DAYS ${reg.depotYear || ""} — ART DEPOT DISTRICT`, titleX, 74, { width: W - titleX - 50, align: "right" });
+    doc.fontSize(8.5).font("Helvetica").fillColor(gray)
+       .text("Covington, Tennessee", titleX, 90, { width: W - titleX - 50, align: "right" });
 
-    // ── Divider ───────────────────────────────────────────
-    const lineY = 130;
+    // ── Header divider — below the logo (square logo ~140px tall) ──
+    const lineY = 200;
     doc.moveTo(50, lineY).lineTo(W - 50, lineY).strokeColor(navy).lineWidth(2).stroke();
 
-    // ── Field helper ──────────────────────────────────────
+    // ── Field helpers ─────────────────────────────────────
     let y = lineY + 18;
-    function field(label, value, opts = {}) {
-      doc.fontSize(8).font("Helvetica-Bold").fillColor(navy)
-         .text(label.toUpperCase(), 50, y, { continued: false });
-      y += 13;
-      doc.fontSize(11).font("Helvetica").fillColor("#222222")
-         .text(value || "—", 50, y, { width: opts.fullWidth ? W - 100 : 320 });
-      y += opts.tall ? 28 : 20;
+
+    function label(text, x, ly) {
+      doc.fontSize(7.5).font("Helvetica-Bold").fillColor(navy)
+         .text(text.toUpperCase(), x, ly, { continued: false });
+    }
+    function value(text, x, vy, w) {
+      doc.fontSize(10.5).font("Helvetica").fillColor("#111111")
+         .text(text || "—", x, vy, { width: w || 240 });
     }
 
-    function twoFields(label1, val1, label2, val2) {
+    function twoFields(l1, v1, l2, v2) {
       const col2 = W / 2 + 10;
-      // Left
-      doc.fontSize(8).font("Helvetica-Bold").fillColor(navy).text(label1.toUpperCase(), 50, y);
-      doc.fontSize(11).font("Helvetica").fillColor("#222222").text(val1 || "—", 50, y + 13, { width: 220 });
-      // Right
-      doc.fontSize(8).font("Helvetica-Bold").fillColor(navy).text(label2.toUpperCase(), col2, y);
-      doc.fontSize(11).font("Helvetica").fillColor("#222222").text(val2 || "—", col2, y + 13, { width: 220 });
-      y += 36;
+      const lw   = col2 - 50 - 20;
+      label(l1, 50,   y);     value(v1, 50,   y + 12, lw);
+      label(l2, col2, y);     value(v2, col2, y + 12, lw);
+      y += 34;
     }
 
-    // ── Applicant Info ────────────────────────────────────
+    function fullField(l, v) {
+      label(l, 50, y);
+      value(v, 50, y + 12, W - 100);
+      y += 34;
+    }
+
+    // ── Fields ────────────────────────────────────────────
     twoFields("Vendor Full Name", reg.vendorName, "Business Name", reg.businessName || reg.vendorName);
-    field("Street Address", reg.streetAddress, { fullWidth: true });
+    fullField("Street Address", reg.streetAddress);
+
     const cityStateZip = [reg.city, reg.state, reg.zip].filter(Boolean).join(", ");
     twoFields("City / State / Zip", cityStateZip, "Cell Phone", reg.cellPhone);
 
-    // Accepts text line
-    const acceptsText = reg.acceptsText ? "☑  Vendor accepts text messages" : "☐  No text messages";
-    doc.fontSize(9).font("Helvetica").fillColor(gray).text(acceptsText, 50, y);
-    y += 20;
+    // Accepts text — plain ASCII so all fonts render it
+    const textMsg = reg.acceptsText ? "[YES]  Vendor accepts text messages" : "[NO]   Vendor does not accept text messages";
+    doc.fontSize(9).font("Helvetica").fillColor(gray).text(textMsg, 50, y);
+    y += 22;
 
-    field("Email Address", reg.email, { fullWidth: true });
+    fullField("Email Address", reg.email);
 
-    // Booth spaces
-    const boothLabel = reg.boothSpaces === 1 ? "1 space (10'×10')" : `${reg.boothSpaces} spaces (10'×10' each)`;
+    const boothLabel = reg.boothSpaces === 1 ? "1 space (10'x10')" : `${reg.boothSpaces} spaces (10'x10' each)`;
     twoFields("Booth Spaces Requested", boothLabel, "Application Date", formatDate(reg.submittedAt?.toDate ? reg.submittedAt.toDate() : new Date()));
 
-    // ── Second divider ────────────────────────────────────
+    // ── Section divider ───────────────────────────────────
     y += 6;
-    doc.moveTo(50, y).lineTo(W - 50, y).strokeColor(navy).lineWidth(0.5).stroke();
-    y += 16;
-
-    // ── Registration ID ───────────────────────────────────
-    doc.fontSize(8).font("Helvetica-Bold").fillColor(navy).text("REGISTRATION ID", 50, y);
-    doc.fontSize(12).font("Helvetica-Bold").fillColor(red).text(registrationId, 50, y + 13);
-
-    // ── QR Code ───────────────────────────────────────────
-    const qrX = W - 50 - 130;
-    const qrY = y - 8;
-    doc.image(qrBuffer, qrX, qrY, { width: 130 });
-    doc.fontSize(8).font("Helvetica").fillColor(gray)
-       .text("Scan to verify at check-in", qrX, qrY + 134, { width: 130, align: "center" });
-
-    y += 70;
-
-    // ── Footer note ───────────────────────────────────────
     doc.moveTo(50, y).lineTo(W - 50, y).strokeColor("#cccccc").lineWidth(0.5).stroke();
-    y += 12;
-    doc.fontSize(8.5).font("Helvetica").fillColor(gray)
+    y += 18;
+
+    // ── Registration ID (left) + QR code (right) ─────────
+    const QR_SIZE = 120;
+    const qrX     = W - 50 - QR_SIZE;
+    const qrStartY = y;
+
+    // Registration ID block on left
+    label("Registration ID", 50, y);
+    y += 13;
+    doc.fontSize(13).font("Helvetica-Bold").fillColor(red).text(registrationId, 50, y, { width: qrX - 70 });
+    y += 22;
+
+    // QR code right-aligned — positioned at qrStartY
+    doc.image(qrBuffer, qrX, qrStartY, { width: QR_SIZE });
+    doc.fontSize(7.5).font("Helvetica").fillColor(gray)
+       .text("Scan to verify at check-in", qrX, qrStartY + QR_SIZE + 4, { width: QR_SIZE, align: "center" });
+
+    // Advance y past QR code + label
+    const qrBottom = qrStartY + QR_SIZE + 18;
+    y = Math.max(y, qrBottom) + 12;
+
+    // ── Footer ────────────────────────────────────────────
+    doc.moveTo(50, y).lineTo(W - 50, y).strokeColor("#dddddd").lineWidth(0.5).stroke();
+    y += 10;
+    doc.fontSize(8).font("Helvetica").fillColor(gray)
        .text(
          "This document serves as your official vendor application confirmation for Depot Days. " +
          "Please bring a printed or digital copy to the vendor check-in area on the day of the event. " +
          "Booth assignment details will be provided by the Covington Tipton County Chamber of Commerce.",
-         50, y, { width: W - 100, align: "left" }
+         50, y, { width: W - 100 }
        );
 
     doc.end();
