@@ -83,6 +83,12 @@
     <div class="admin-nav-item" data-panel="chatlogs">
       <span class="admin-nav-icon">📝</span> Chat Logs
     </div>
+    <div class="admin-nav-item" data-panel="vendors">
+      <span class="admin-nav-icon">🏪</span> Vendors
+    </div>
+    <div class="admin-nav-item" data-panel="reports">
+      <span class="admin-nav-icon">📧</span> Reports
+    </div>
     <div class="admin-nav-item" data-panel="config">
       <span class="admin-nav-icon">⚙️</span> Site Config
     </div>
@@ -101,6 +107,7 @@
         <div class="stat-card"><div class="stat-num" id="statRegs">—</div><div class="stat-label">Car Show Regs</div></div>
         <div class="stat-card"><div class="stat-num" id="statFaqs">—</div><div class="stat-label">FAQ Entries</div></div>
         <div class="stat-card"><div class="stat-num" id="statChats">—</div><div class="stat-label">Chat Logs</div></div>
+        <div class="stat-card"><div class="stat-num" id="statVendors">—</div><div class="stat-label">Vendor Signups</div></div>
       </div>
       <div class="admin-card">
         <h4 style="font-size:1.1rem;margin-bottom:16px">Quick Links</h4>
@@ -246,6 +253,15 @@
             <textarea class="form-textarea" id="ddSponsors" placeholder="Sponsor Name&#10;Another Sponsor"></textarea>
           </div>
         </div>
+        <div class="form-row full" style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+          <div class="form-group">
+            <label class="form-label">Vendor Signup Status</label>
+            <div class="toggle-wrap" style="margin-top:8px">
+              <label class="toggle"><input type="checkbox" id="ddVendorSignupOpen"><span class="toggle-slider"></span></label>
+              <span style="font-size:.9rem;color:var(--text-secondary)">Vendor signup form is <strong id="vendorToggleLabel">closed</strong> — toggle to open/close on the public site</span>
+            </div>
+          </div>
+        </div>
         <button class="btn btn-primary mt-24" onclick="saveDepotDays()">Save Depot Days</button>
         <span id="ddSaveMsg" style="margin-left:16px;font-size:.85rem;color:var(--accent);display:none">Saved!</span>
       </div>
@@ -263,6 +279,72 @@
           <thead><tr><th>Question</th><th>Category</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody id="faqTbody"><tr><td colspan="4" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr></tbody>
         </table>
+      </div>
+    </div>
+
+
+    <!-- Vendor Signups -->
+    <div class="admin-panel" id="panel-vendors">
+      <div class="admin-header">
+        <h2>Vendor Signups</h2>
+        <button class="btn btn-ghost" onclick="exportVendorCSV()" style="font-size:.78rem">Export CSV</button>
+      </div>
+      <div style="margin-bottom:20px">
+        <span id="vendorRegCount" style="font-family:var(--font-ui);font-size:.8rem;color:var(--text-muted)"></span>
+      </div>
+      <div class="admin-card" style="padding:0;overflow:hidden">
+        <table class="admin-table" id="vendorTable">
+          <thead>
+            <tr><th>Name</th><th>Business</th><th>Email</th><th>Phone</th><th>Booths</th><th>Check-In</th><th>Date</th></tr>
+          </thead>
+          <tbody id="vendorTbody"><tr><td colspan="7" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Reports -->
+    <div class="admin-panel" id="panel-reports">
+      <div class="admin-header"><h2>Weekly Reports</h2></div>
+      <p style="margin-bottom:28px;font-size:.95rem;color:var(--text-secondary)">
+        Reports are emailed every <strong>Monday at 8pm CT</strong> to the configured addresses below.
+        Reports include a full registrant list and a count of new signups since the previous Monday.
+        Reports only send within the configured date window.
+      </p>
+
+      <div class="admin-card" style="margin-bottom:28px">
+        <h4 style="font-size:1rem;margin-bottom:20px">Report Window</h4>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Start Date <span style="font-weight:400;color:var(--text-muted)">(first report date)</span></label>
+            <input class="form-input" type="date" id="rptStartDate">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Stop Date <span style="font-weight:400;color:var(--text-muted)">(after Depot Days)</span></label>
+            <input class="form-input" type="date" id="rptStopDate">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveReportConfig()">Save Settings</button>
+        <span id="rptSaveMsg" style="margin-left:16px;font-size:.85rem;color:var(--accent);display:none">Saved!</span>
+      </div>
+
+      <div class="admin-card" style="margin-bottom:28px">
+        <h4 style="font-size:1rem;margin-bottom:6px">🏪 Vendor Report Recipients</h4>
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:16px">These addresses receive the weekly vendor signup report.</p>
+        <div id="vendorEmailList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input class="form-input" type="email" id="newVendorEmail" placeholder="email@example.com" style="flex:1;font-size:.9rem">
+          <button class="btn btn-outline" onclick="addVendorEmail()" style="white-space:nowrap;font-size:.82rem;padding:8px 16px">+ Add</button>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h4 style="font-size:1rem;margin-bottom:6px">🚗 Car Show Report Recipients</h4>
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:16px">These addresses receive the weekly car show registration report.</p>
+        <div id="carShowEmailList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input class="form-input" type="email" id="newCarShowEmail" placeholder="email@example.com" style="flex:1;font-size:.9rem">
+          <button class="btn btn-outline" onclick="addCarShowEmail()" style="white-space:nowrap;font-size:.82rem;padding:8px 16px">+ Add</button>
+        </div>
       </div>
     </div>
 
@@ -404,6 +486,17 @@
           <div class="form-group">
             <label class="form-label">Contact Sidebar Note <span style="font-weight:400;color:var(--text-muted)">— optional extra info</span></label>
             <input class="form-input" type="text" id="cfgContactNote" placeholder="e.g. Artesian Business District (official city designation)">
+          </div>
+        </div>
+        <h4 style="font-size:1rem;margin:24px 0 16px;padding-top:20px;border-top:1px solid var(--border)">Vendor &amp; Chamber Settings</h4>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Chamber Email <span style="font-weight:400;color:var(--text-muted)">(receives vendor DOR on signup)</span></label>
+            <input class="form-input" type="email" id="cfgChamberEmail" placeholder="chamber@example.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Chamber Logo URL <span style="font-weight:400;color:var(--text-muted)">(appears on vendor PDF)</span></label>
+            <input class="form-input" type="url" id="cfgChamberLogo" placeholder="https://... (auto-embedded in PDF)">
           </div>
         </div>
         <h4 style="font-size:1rem;margin:24px 0 16px;padding-top:20px;border-top:1px solid var(--border)">Footer Content</h4>
@@ -759,12 +852,22 @@ document.querySelectorAll('.admin-nav-item').forEach(item => {
     if (item.dataset.panel === 'chatlogs')      loadChatLogs();
     if (item.dataset.panel === 'depotdays')     loadDepotDays();
     if (item.dataset.panel === 'config')        loadConfig();
+    if (item.dataset.panel === 'vendors')       loadVendors();
+    if (item.dataset.panel === 'depotdays') {
+      // wire toggle label update on change
+      setTimeout(() => {
+        const tog = document.getElementById('ddVendorSignupOpen');
+        const lbl = document.getElementById('vendorToggleLabel');
+        if (tog && lbl) tog.addEventListener('change', () => { lbl.textContent = tog.checked ? 'open' : 'closed'; });
+      }, 400);
+    }
+    if (item.dataset.panel === 'reports')       loadReportConfig();
   });
 });
 
 // ── Dashboard ─────────────────────────────────────────────
 async function loadDashboard() {
-  const counts = { statBiz:'businesses', statRegs:'car_show_registrations', statFaqs:'faqs', statChats:'chat_logs' };
+  const counts = { statBiz:'businesses', statRegs:'car_show_registrations', statFaqs:'faqs', statChats:'chat_logs', statVendors:'vendor_registrations' };
   for (const [elId, col] of Object.entries(counts)) {
     getDocs(collection(db, col)).then(s => {
       document.getElementById(elId).textContent = s.size;
@@ -927,6 +1030,10 @@ async function loadDepotDays() {
   if (dd.bannerImage) { ddPrev.src = dd.bannerImage; ddPrev.style.display = 'block'; } else { ddPrev.style.display = 'none'; }
   document.getElementById('ddVendors').value     = (dd.vendors||[]).join('\n');
   document.getElementById('ddSponsors').value    = (dd.sponsors||[]).join('\n');
+  // Vendor signup toggle
+  const open = dd.vendorSignupOpen || false;
+  document.getElementById('ddVendorSignupOpen').checked = open;
+  document.getElementById('vendorToggleLabel').textContent = open ? 'open' : 'closed';
   // Load schedule rows
   document.getElementById('ddScheduleList').innerHTML = '';
   const schedule = dd.schedule || [];
@@ -947,9 +1054,14 @@ window.saveDepotDays = async () => {
     })).filter(s => s.title),
     vendors:  document.getElementById('ddVendors').value.split('\n').map(s=>s.trim()).filter(Boolean),
     sponsors: document.getElementById('ddSponsors').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    vendorSignupOpen: document.getElementById('ddVendorSignupOpen').checked,
     updatedAt: serverTimestamp(),
   };
   await setDoc(doc(db,'depot_days',year), data, { merge: true });
+  // Also write vendorSignupOpen to site_config so public pages can read it cheaply
+  await setDoc(doc(db,'site_config','main'), { vendorSignupOpen: data.vendorSignupOpen }, { merge: true });
+  const lbl = document.getElementById('vendorToggleLabel');
+  if (lbl) lbl.textContent = data.vendorSignupOpen ? 'open' : 'closed';
   const msg = document.getElementById('ddSaveMsg');
   msg.style.display = 'inline';
   setTimeout(() => msg.style.display = 'none', 2500);
@@ -1085,6 +1197,8 @@ async function loadConfig() {
   document.getElementById('cfgFooterTagline').value = cfg.footerTagline||'';
   document.getElementById('cfgFooterDesc').value    = cfg.footerDesc||'';
   document.getElementById('cfgCopyright').value     = cfg.footerCopyright||'';
+  document.getElementById('cfgChamberEmail').value  = cfg.chamberEmail||'';
+  document.getElementById('cfgChamberLogo').value   = cfg.chamberLogoUrl||'';
   // Feature card images
   const cardFields = ['cfgCardBusinesses','cfgCardEvents','cfgCardDepotDays','cfgCardCarShow'];
   const cardKeys   = ['cardBusinesses','cardEvents','cardDepotDays','cardCarShow'];
@@ -1123,6 +1237,8 @@ window.saveSiteConfig = async () => {
     cardEvents:      document.getElementById('cfgCardEvents').value.trim(),
     cardDepotDays:   document.getElementById('cfgCardDepotDays').value.trim(),
     cardCarShow:     document.getElementById('cfgCardCarShow').value.trim(),
+    chamberEmail:    document.getElementById('cfgChamberEmail').value.trim(),
+    chamberLogoUrl:  document.getElementById('cfgChamberLogo').value.trim(),
     updatedAt: serverTimestamp(),
   };
   await setDoc(doc(db,'site_config','main'), data, { merge: true });
@@ -1167,6 +1283,148 @@ window.addScheduleRow = (item = {}) => {
     </div>`;
   document.getElementById('ddScheduleList').appendChild(row);
 };
+
+
+// ── Vendor Registrations ──────────────────────────────────
+let vendorData = [];
+async function loadVendors() {
+  try {
+    const snap = await getDocs(collection(db,'vendor_registrations'));
+    vendorData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    vendorData.sort((a,b) => (b.submittedAt?.seconds||0) - (a.submittedAt?.seconds||0));
+    const count = document.getElementById('vendorRegCount');
+    if (count) count.textContent = `${vendorData.length} registration${vendorData.length!==1?'s':''}`;
+    const tbody = document.getElementById('vendorTbody');
+    if (!vendorData.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted)">No vendor signups yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = vendorData.map(v => {
+      const date      = v.submittedAt?.toDate ? v.submittedAt.toDate().toLocaleDateString() : '—';
+      const checkedIn = v.checkedIn
+        ? `<span class="admin-badge badge-published">✓ Checked In</span>`
+        : `<span class="admin-badge badge-draft">Pending</span>`;
+      const booths    = v.boothSpaces || 1;
+      return `<tr>
+        <td style="color:var(--text-primary);font-weight:500">${v.vendorName}</td>
+        <td>${v.businessName||'—'}</td>
+        <td style="font-size:.85rem">${v.email}</td>
+        <td>${v.phone||v.cellPhone||'—'}</td>
+        <td style="text-align:center">${booths}</td>
+        <td>${checkedIn}</td>
+        <td>${date}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { console.error('loadVendors:', e); }
+}
+
+window.exportVendorCSV = () => {
+  if (!vendorData.length) return;
+  const headers = ['Vendor Name','Business Name','Street Address','City','State','Zip','Cell Phone','Accepts Text','Email','Booth Spaces','Checked In','Date'];
+  const rows = vendorData.map(v => [
+    v.vendorName, v.businessName||'', v.streetAddress||'', v.city||'', v.state||'', v.zip||'',
+    v.cellPhone||'', v.acceptsText?'Yes':'No', v.email,
+    v.boothSpaces||1, v.checkedIn?'Yes':'No',
+    v.submittedAt?.toDate ? v.submittedAt.toDate().toLocaleDateString() : ''
+  ].map(val=>`"${String(val).replace(/"/g,'""')}"`).join(','));
+  const csv  = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type:'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a'); a.href=url; a.download='vendor-registrations.csv'; a.click();
+};
+
+// ── Report Config ─────────────────────────────────────────
+let reportCfg = { vendorEmails:[], carShowEmails:[], reportStartDate:'', reportStopDate:'' };
+
+async function loadReportConfig() {
+  try {
+    const snap = await getDoc(doc(db,'report_config','main'));
+    reportCfg  = snap.exists() ? snap.data() : { vendorEmails:[], carShowEmails:[], reportStartDate:'', reportStopDate:'' };
+  } catch(e) { reportCfg = { vendorEmails:[], carShowEmails:[], reportStartDate:'', reportStopDate:'' }; }
+
+  document.getElementById('rptStartDate').value = reportCfg.reportStartDate || '';
+  document.getElementById('rptStopDate').value  = reportCfg.reportStopDate  || '';
+
+  renderEmailList('vendorEmailList',  reportCfg.vendorEmails  || [], 'vendor');
+  renderEmailList('carShowEmailList', reportCfg.carShowEmails || [], 'carshow');
+}
+
+function renderEmailList(containerId, emails, type) {
+  const wrap = document.getElementById(containerId);
+  if (!emails.length) {
+    wrap.innerHTML = `<div style="font-size:.85rem;color:var(--text-muted);padding:8px 0">No addresses added yet.</div>`;
+    return;
+  }
+  wrap.innerHTML = emails.map((email, i) => `
+    <div style="display:flex;align-items:center;gap:10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px">
+      <span style="flex:1;font-size:.9rem;color:var(--text-primary)">${email}</span>
+      <button onclick="removeEmail('${type}',${i})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;padding:0 4px" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+window.addVendorEmail = async () => {
+  const input = document.getElementById('newVendorEmail');
+  const email = input.value.trim().toLowerCase();
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { input.style.borderColor='var(--accent)'; return; }
+  input.style.borderColor = '';
+  if (!reportCfg.vendorEmails) reportCfg.vendorEmails = [];
+  if (reportCfg.vendorEmails.includes(email)) { input.value=''; return; }
+  reportCfg.vendorEmails.push(email);
+  await saveEmailLists();
+  input.value = '';
+  renderEmailList('vendorEmailList', reportCfg.vendorEmails, 'vendor');
+};
+
+window.addCarShowEmail = async () => {
+  const input = document.getElementById('newCarShowEmail');
+  const email = input.value.trim().toLowerCase();
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { input.style.borderColor='var(--accent)'; return; }
+  input.style.borderColor = '';
+  if (!reportCfg.carShowEmails) reportCfg.carShowEmails = [];
+  if (reportCfg.carShowEmails.includes(email)) { input.value=''; return; }
+  reportCfg.carShowEmails.push(email);
+  await saveEmailLists();
+  input.value = '';
+  renderEmailList('carShowEmailList', reportCfg.carShowEmails, 'carshow');
+};
+
+window.removeEmail = async (type, index) => {
+  if (type === 'vendor') {
+    reportCfg.vendorEmails.splice(index, 1);
+    renderEmailList('vendorEmailList', reportCfg.vendorEmails, 'vendor');
+  } else {
+    reportCfg.carShowEmails.splice(index, 1);
+    renderEmailList('carShowEmailList', reportCfg.carShowEmails, 'carshow');
+  }
+  await saveEmailLists();
+};
+
+async function saveEmailLists() {
+  await setDoc(doc(db,'report_config','main'), {
+    vendorEmails:  reportCfg.vendorEmails  || [],
+    carShowEmails: reportCfg.carShowEmails || [],
+  }, { merge: true });
+}
+
+window.saveReportConfig = async () => {
+  const startDate = document.getElementById('rptStartDate').value;
+  const stopDate  = document.getElementById('rptStopDate').value;
+  reportCfg.reportStartDate = startDate;
+  reportCfg.reportStopDate  = stopDate;
+  await setDoc(doc(db,'report_config','main'), {
+    reportStartDate: startDate,
+    reportStopDate:  stopDate,
+    vendorEmails:    reportCfg.vendorEmails  || [],
+    carShowEmails:   reportCfg.carShowEmails || [],
+  }, { merge: true });
+  const msg = document.getElementById('rptSaveMsg');
+  msg.style.display = 'inline';
+  setTimeout(() => msg.style.display = 'none', 2500);
+};
+
+// Allow Enter key in email inputs
+document.getElementById('newVendorEmail')?.addEventListener('keydown',  e => { if (e.key==='Enter') addVendorEmail(); });
+document.getElementById('newCarShowEmail')?.addEventListener('keydown', e => { if (e.key==='Enter') addCarShowEmail(); });
 
 // ── Modal util ────────────────────────────────────────────
 window.closeModal = (id) => document.getElementById(id).classList.remove('open');

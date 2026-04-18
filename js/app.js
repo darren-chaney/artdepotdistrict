@@ -136,3 +136,17 @@ export function renderEventItem(event, sourceName, sourceColor) {
       <div class="event-time">${time}</div>
     </div>`;
 }
+
+// ── Vendor Registration ───────────────────────────────────
+export async function submitVendorRegistration(data) {
+  try {
+    const db = getDB(); if (!db) return { success: false, error: 'Not initialized' };
+    const docRef = await addDoc(collection(db,'vendor_registrations'), {
+      ...data,
+      submittedAt: serverTimestamp(),
+      status: 'new',
+      checkedIn: false,
+    });
+    return { success: true, id: docRef.id };
+  } catch(e) { console.error('submitVendorReg:', e); return { success: false, error: e.message }; }
+}

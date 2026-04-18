@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Vendor Check-In — Art Depot District</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    body { background: var(--bg-secondary); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .checkin-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 40px; max-width: 480px; width: 100%; box-shadow: 0 8px 32px rgba(0,0,0,.18); }
+    .checkin-logo { text-align: center; margin-bottom: 28px; }
+    .checkin-logo h2 { font-family: var(--font-display); font-size: 1.5rem; color: var(--text-primary); margin: 0 0 4px; }
+    .checkin-logo p  { font-family: var(--font-ui); font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 0; }
+    .checkin-field { display: flex; flex-direction: column; gap: 3px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .checkin-field:last-of-type { border-bottom: none; }
+    .checkin-label { font-family: var(--font-ui); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); }
+    .checkin-value { font-size: 1.1rem; color: var(--text-primary); font-weight: 500; }
+    .checkin-badge { display: inline-block; padding: 6px 14px; border-radius: 20px; font-family: var(--font-ui); font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .badge-new   { background: rgba(184,53,53,.12); color: var(--accent); border: 1px solid rgba(184,53,53,.3); }
+    .badge-checkedin { background: rgba(26,95,110,.12); color: #1a5f6e; border: 1px solid rgba(26,95,110,.3); }
+    .checkin-btn { width: 100%; margin-top: 28px; padding: 14px; font-size: 1rem; }
+    .checkin-err { text-align: center; padding: 40px 20px; }
+    .checkin-err h3 { color: var(--accent); margin-bottom: 12px; }
+    .loading-wrap { text-align: center; padding: 60px 20px; }
+    .checkin-id { font-family: monospace; font-size: .78rem; color: var(--text-muted); text-align: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<div class="checkin-card">
+  <div class="checkin-logo">
+    <h2>Depot Days</h2>
+    <p>Art Depot District — Vendor Check-In</p>
+  </div>
+
+  <div id="loadingState" class="loading-wrap">
+    <div class="loading-spinner"></div>
+    <p style="margin-top:16px;color:var(--text-muted);font-size:.9rem">Looking up registration…</p>
+  </div>
+
+  <div id="vendorInfo" style="display:none">
+    <div class="checkin-field">
+      <div class="checkin-label">Vendor Name</div>
+      <div class="checkin-value" id="ciVendorName">—</div>
+    </div>
+    <div class="checkin-field">
+      <div class="checkin-label">Business Name</div>
+      <div class="checkin-value" id="ciBusinessName">—</div>
+    </div>
+    <div class="checkin-field">
+      <div class="checkin-label">Booth Spaces</div>
+      <div class="checkin-value" id="ciBooths">—</div>
+    </div>
+    <div class="checkin-field">
+      <div class="checkin-label">Status</div>
+      <div id="ciStatus"></div>
+    </div>
+    <button class="btn btn-primary checkin-btn" id="checkInBtn" style="display:none">
+      ✓ Mark Checked In
+    </button>
+    <div class="checkin-id" id="ciRegId"></div>
+  </div>
+
+  <div id="errorState" class="checkin-err" style="display:none">
+    <h3>Registration Not Found</h3>
+    <p style="color:var(--text-muted)">This QR code doesn't match any registration. Please check the document and try again.</p>
+  </div>
+</div>
+
+<script src="/js/firebase-config.js"></script>
+<script type="module">
+  import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, initializeFirestore, doc, getDoc, updateDoc, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const cfg = window.__ART_DEPOT_CONFIG;
+  const app = getApps().length ? getApps()[0] : initializeApp(cfg);
+  const db  = initializeFirestore(app, { experimentalForceLongPolling: true });
+
+  const params = new URLSearchParams(window.location.search);
+  const id     = params.get("id");
+
+  async function load() {
+    if (!id) { showError(); return; }
+    try {
+      const snap = await getDoc(doc(db, "vendor_registrations", id));
+      if (!snap.exists()) { showError(); return; }
+      const reg = snap.data();
+      const booths = reg.boothSpaces === 1 ? "1 space (10'×10')" : `${reg.boothSpaces} spaces (10'×10' each)`;
+      document.getElementById("ciVendorName").textContent   = reg.vendorName || "—";
+      document.getElementById("ciBusinessName").textContent = reg.businessName || reg.vendorName || "—";
+      document.getElementById("ciBooths").textContent       = booths;
+      document.getElementById("ciRegId").textContent        = `Registration ID: ${id}`;
+
+      const statusEl = document.getElementById("ciStatus");
+      if (reg.checkedIn) {
+        const t = reg.checkedInAt?.toDate ? reg.checkedInAt.toDate().toLocaleTimeString() : "";
+        statusEl.innerHTML = `<span class="checkin-badge badge-checkedin">✓ Checked In${t ? " — " + t : ""}</span>`;
+      } else {
+        statusEl.innerHTML = `<span class="checkin-badge badge-new">Not Yet Checked In</span>`;
+        document.getElementById("checkInBtn").style.display = "block";
+      }
+
+      document.getElementById("loadingState").style.display = "none";
+      document.getElementById("vendorInfo").style.display   = "block";
+    } catch(e) {
+      console.error(e);
+      showError();
+    }
+  }
+
+  document.getElementById("checkInBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("checkInBtn");
+    btn.textContent = "Checking in…";
+    btn.disabled    = true;
+    try {
+      await updateDoc(doc(db, "vendor_registrations", id), {
+        checkedIn:   true,
+        checkedInAt: serverTimestamp(),
+      });
+      const statusEl = document.getElementById("ciStatus");
+      statusEl.innerHTML = `<span class="checkin-badge badge-checkedin">✓ Checked In — ${new Date().toLocaleTimeString()}</span>`;
+      btn.style.display  = "none";
+    } catch(e) {
+      btn.textContent = "Error — try again";
+      btn.disabled    = false;
+    }
+  });
+
+  function showError() {
+    document.getElementById("loadingState").style.display = "none";
+    document.getElementById("errorState").style.display   = "block";
+  }
+
+  load();
+</script>
+</body>
+</html>

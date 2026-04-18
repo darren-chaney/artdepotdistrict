@@ -20,13 +20,29 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
-    // Public create (form submissions), auth read
+    // Public create (form submissions), auth read/write
     match /car_show_registrations/{id} {
       allow create: if true;
       allow read, update, delete: if request.auth != null;
     }
 
-    // Auth only — chat logs and admin data
+    // Vendor registrations — public create, auth read/write
+    // checkedIn field can be updated via the checkin page (no auth needed for that one field)
+    match /vendor_registrations/{id} {
+      allow create: if true;
+      allow read:   if true;
+      allow update: if request.auth != null
+                    || (request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['checkedIn','checkedInAt']));
+      allow delete: if request.auth != null;
+    }
+
+    // Report config — admin only (email addresses must stay private)
+    match /report_config/{id} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Auth only — chat logs
     match /chat_logs/{id} {
       allow create: if true;
       allow read, update, delete: if request.auth != null;
