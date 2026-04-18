@@ -60,7 +60,7 @@ async function buildVendorPDF(reg, registrationId) {
     doc.fontSize(18).font("Helvetica-Bold").fillColor(navy)
        .text("VENDOR APPLICATION", 0, 52, { align: "right" });
     doc.fontSize(11).font("Helvetica").fillColor(red)
-       .text("DEPOT DAYS — ART DEPOT DISTRICT", 0, 76, { align: "right" });
+       .text(`DEPOT DAYS ${reg.depotYear || ""} — ART DEPOT DISTRICT`, 0, 76, { align: "right" });
     doc.fontSize(9).fillColor(gray)
        .text("Covington, Tennessee", 0, 94, { align: "right" });
 
@@ -281,6 +281,49 @@ exports.vendorRegister = onRequest(
     }
 
     return res.json({ success: true, id: docRef.id });
+  }
+);
+
+
+// ── Preview Vendor PDF (admin sample download) ────────────
+exports.previewVendorPDF = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.method !== "GET") return res.status(405).send("Method not allowed");
+
+    const db = getFirestore();
+    let depotYear = new Date().getFullYear().toString();
+    try {
+      const snap = await db.doc(`depot_days/${depotYear}`).get();
+      if (snap.exists && snap.data().year) depotYear = snap.data().year;
+    } catch(e) { /* use default */ }
+
+    const sampleReg = {
+      vendorName:    "Jane Smith",
+      businessName:  "Smith Candles",
+      streetAddress: "123 Main Street",
+      city:          "Covington",
+      state:         "TN",
+      zip:           "38019",
+      cellPhone:     "901-555-1234",
+      acceptsText:   true,
+      email:         "jane@smithcandles.com",
+      boothSpaces:   2,
+      depotYear,
+      submittedAt:   { toDate: () => new Date() },
+    };
+
+    let pdfBuffer;
+    try {
+      pdfBuffer = await buildVendorPDF(sampleReg, "SAMPLE-PREVIEW");
+    } catch(e) {
+      console.error("Sample PDF failed:", e);
+      return res.status(500).send("PDF generation failed");
+    }
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "attachment; filename=vendor-sample-preview.pdf");
+    res.send(pdfBuffer);
   }
 );
 

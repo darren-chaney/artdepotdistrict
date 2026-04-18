@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vendor Sign Up — Depot Days — Art Depot District</title>
+  <meta name="description" content="Sign up to be a vendor at Depot Days in Covington, Tennessee.">
+  <link rel="stylesheet" href="/css/styles.css">
+  <meta property="og:image" content="https://firebasestorage.googleapis.com/v0/b/artdepotdistrict.firebasestorage.app/o/artdepotdistrict-og-image.png?alt=media&token=76b17545-19d3-41c4-bb0e-d181f2213ae8">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://artdepotdistrict.com/vendor-signup.html">
+  <meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+
+<div id="nav-placeholder"></div>
+
+<div class="page-header">
+  <div class="container">
+    <span class="eyebrow">Depot Days Festival</span>
+    <h1>Vendor<br>Sign Up</h1>
+    <p id="vsSubtitle">Claim your booth at Depot Days and showcase your business to the Covington community.</p>
+  </div>
+</div>
+
+<!-- Closed State -->
+<section class="section" id="vsClosedSection" style="display:none">
+  <div class="container" style="max-width:600px;text-align:center">
+    <div style="font-size:3rem;margin-bottom:20px">🏪</div>
+    <h2 id="vsClosedTitle">Vendor Registration is Closed</h2>
+    <div class="divider divider-center"></div>
+    <p id="vsClosedMsg" style="color:var(--text-secondary);margin-bottom:32px">Vendor registration for this year's Depot Days is not currently open. Check back soon or contact us for more information.</p>
+    <a href="/depot-days.html" class="btn btn-primary">&larr; Back to Depot Days</a>
+  </div>
+</section>
+
+<!-- Registration Form -->
+<section class="section" id="vsFormSection" style="display:none">
+  <div class="container" style="display:grid;grid-template-columns:1fr 380px;gap:64px;align-items:start">
+
+    <!-- Form -->
+    <div>
+      <span class="eyebrow">Vendor Application</span>
+      <h2 style="font-size:2rem;margin-bottom:8px">Register Your Booth</h2>
+      <div class="divider"></div>
+      <p style="margin-bottom:40px">Complete the form below to submit your vendor application. You'll receive a confirmation email with your official PDF document of record.</p>
+
+      <form id="vendorSignupForm" novalidate>
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label class="form-label" for="vsVendorName">Vendor Full Name *</label>
+            <input class="form-input" type="text" id="vsVendorName" required>
+            <span class="form-error-msg" id="err-vsVendorName">Required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="vsBusinessName">Business Name <span style="font-weight:400;opacity:.6">(if different)</span></label>
+            <input class="form-input" type="text" id="vsBusinessName">
+          </div>
+
+          <div class="form-group full">
+            <label class="form-label" for="vsStreetAddress">Street Address *</label>
+            <input class="form-input" type="text" id="vsStreetAddress" required>
+            <span class="form-error-msg" id="err-vsStreetAddress">Required</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="vsCity">City *</label>
+            <input class="form-input" type="text" id="vsCity" required>
+            <span class="form-error-msg" id="err-vsCity">Required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="vsState">State *</label>
+            <input class="form-input" type="text" id="vsState" maxlength="2" placeholder="TN" value="TN" required>
+            <span class="form-error-msg" id="err-vsState">Required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="vsZip">Zip *</label>
+            <input class="form-input" type="text" id="vsZip" inputmode="numeric" maxlength="10" required>
+            <span class="form-error-msg" id="err-vsZip">Required</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="vsCellPhone">Cell Phone *</label>
+            <input class="form-input" type="tel" id="vsCellPhone" inputmode="tel" required>
+            <span class="form-error-msg" id="err-vsCellPhone">Required</span>
+          </div>
+          <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end">
+            <div class="form-checkbox-group" style="margin-bottom:0">
+              <input type="checkbox" id="vsAcceptsText">
+              <label class="form-checkbox-label" for="vsAcceptsText">I accept text messages</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="vsEmail">Email Address *</label>
+            <input class="form-input" type="email" id="vsEmail" inputmode="email" required>
+            <span class="form-error-msg" id="err-vsEmail">Valid email required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="vsConfirmEmail">Confirm Email Address *</label>
+            <input class="form-input" type="email" id="vsConfirmEmail" inputmode="email" required>
+            <span class="form-error-msg" id="err-vsConfirmEmail">Emails do not match</span>
+          </div>
+
+          <div class="form-group full">
+            <label class="form-label" for="vsBoothSpaces">Number of Booth Spaces * <span style="font-weight:400;opacity:.7">(each space is 10'×10')</span></label>
+            <select class="form-select" id="vsBoothSpaces" required>
+              <option value="">Select...</option>
+              <option value="1">1 space (10'×10')</option>
+              <option value="2">2 spaces (10'×10' each)</option>
+              <option value="3">3 spaces (10'×10' each)</option>
+              <option value="4">4 spaces (10'×10' each)</option>
+            </select>
+            <span class="form-error-msg" id="err-vsBoothSpaces">Please select booth spaces</span>
+          </div>
+
+        </div>
+
+        <div id="vsFormError" style="display:none;background:rgba(184,53,53,.1);border:1px solid rgba(184,53,53,.3);border-radius:var(--radius);padding:12px 16px;margin:16px 0;font-size:.9rem;color:var(--accent)"></div>
+
+        <div style="margin-top:32px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+          <button type="submit" class="btn btn-primary" id="vsSubmitBtn">
+            <span id="vsSubmitText">Submit Vendor Application</span>
+            <span id="vsSubmitSpinner" style="display:none"><div class="loading-spinner" style="width:16px;height:16px;border-width:2px"></div></span>
+          </button>
+          <p style="font-size:.85rem;color:var(--text-muted)">* Required fields</p>
+        </div>
+        <p style="font-size:.82rem;color:var(--text-muted);margin-top:12px">
+          You will receive a confirmation email with your PDF document of record after submitting.
+          Please bring a printed or digital copy to vendor check-in on the day of the event.
+        </p>
+      </form>
+    </div>
+
+    <!-- Sidebar -->
+    <aside>
+      <div class="biz-info-card" style="position:sticky;top:calc(var(--nav-height) + 20px)">
+        <h5 style="margin-bottom:20px">Vendor Information</h5>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div>
+            <div class="form-label" style="margin-bottom:4px">Festival</div>
+            <p style="font-size:.9rem;color:var(--text-secondary)">Depot Days <span id="vsSideYear"></span></p>
+          </div>
+          <div>
+            <div class="form-label" style="margin-bottom:4px">Location</div>
+            <p style="font-size:.9rem;color:var(--text-secondary)">Art Depot District<br>Covington, Tennessee</p>
+          </div>
+          <div>
+            <div class="form-label" style="margin-bottom:4px">Booth Size</div>
+            <p style="font-size:.9rem;color:var(--text-secondary)">10'×10' spaces available. Select the number of spaces you need when registering.</p>
+          </div>
+          <div>
+            <div class="form-label" style="margin-bottom:4px">Registration Deadline</div>
+            <p style="font-size:.9rem;color:var(--text-secondary)" id="vsSideDeadline">Contact us for deadline information.</p>
+          </div>
+          <div>
+            <div class="form-label" style="margin-bottom:4px">What Happens Next</div>
+            <p style="font-size:.9rem;color:var(--text-secondary)">After submitting you'll receive a confirmation email with your official PDF document of record. The Chamber of Commerce will follow up with booth assignment details.</p>
+          </div>
+          <div id="vsSpotsLeft" style="display:none">
+            <div class="form-label" style="margin-bottom:4px">Availability</div>
+            <p style="font-size:.9rem;color:var(--accent);font-weight:600" id="vsSpotsText"></p>
+          </div>
+        </div>
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+          <a href="/depot-days.html" class="btn btn-ghost" style="width:100%;justify-content:center">&larr; Back to Depot Days</a>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+<div id="chat-placeholder"></div>
+
+<script src="/js/firebase-config.js"></script>
+<script src="/js/layout.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script type="module">
+  import { getDepotDays, getSiteConfig } from '/js/app.js';
+  import { getFirestore, initializeFirestore, collection, getDocs, query, where }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+
+  const FUNCTION_URL = 'https://us-central1-artdepotdistrict.cloudfunctions.net/vendorRegister';
+
+  const cfg = window.__ART_DEPOT_CONFIG;
+  const app = getApps().length ? getApps()[0] : initializeApp(cfg);
+  const db  = initializeFirestore(app, { experimentalForceLongPolling: true });
+
+  async function init() {
+    const [siteConfig, dd] = await Promise.all([getSiteConfig(), getDepotDays()]);
+    const year = dd?.year || new Date().getFullYear().toString();
+
+    // Update page with year
+    document.title = `Vendor Sign Up — Depot Days ${year} — Art Depot District`;
+    document.getElementById('vsSideYear').textContent = year;
+
+    // Set deadline in sidebar
+    if (dd?.vendorClosingDate) {
+      const deadline = new Date(dd.vendorClosingDate + 'T00:00:00');
+      document.getElementById('vsSideDeadline').textContent =
+        deadline.toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
+    }
+
+    // Check if signup is open
+    if (!siteConfig.vendorSignupOpen) {
+      showClosed('Vendor registration is not currently open. Check back soon or contact us for more information.');
+      return;
+    }
+
+    // Check closing date
+    if (dd?.vendorClosingDate) {
+      const closing = new Date(dd.vendorClosingDate + 'T23:59:59');
+      if (new Date() > closing) {
+        showClosed(`Vendor registration for Depot Days ${year} has closed. Thank you to everyone who signed up!`);
+        return;
+      }
+    }
+
+    // Check vendor cap
+    if (dd?.vendorCap) {
+      const snap  = await getDocs(collection(db, 'vendor_registrations'));
+      const count = snap.size;
+      const cap   = parseInt(dd.vendorCap);
+      const left  = cap - count;
+      if (left <= 0) {
+        showClosed(`All vendor spaces for Depot Days ${year} have been filled. We appreciate your interest!`);
+        return;
+      }
+      if (left <= 5) {
+        document.getElementById('vsSpotsLeft').style.display = 'block';
+        document.getElementById('vsSpotsText').textContent = `Only ${left} space${left===1?'':'s'} remaining!`;
+      }
+    }
+
+    // Show form
+    document.getElementById('vsFormSection').style.display = 'block';
+  }
+
+  function showClosed(msg) {
+    document.getElementById('vsClosedMsg').textContent = msg;
+    document.getElementById('vsClosedSection').style.display = 'block';
+  }
+
+  function showErr(id, show) {
+    const el = document.getElementById(`err-${id}`);
+    if (el) el.style.display = show ? 'block' : 'none';
+  }
+
+  document.getElementById('vendorSignupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const vendorName    = document.getElementById('vsVendorName').value.trim();
+    const businessName  = document.getElementById('vsBusinessName').value.trim();
+    const streetAddress = document.getElementById('vsStreetAddress').value.trim();
+    const city          = document.getElementById('vsCity').value.trim();
+    const state         = document.getElementById('vsState').value.trim();
+    const zip           = document.getElementById('vsZip').value.trim();
+    const cellPhone     = document.getElementById('vsCellPhone').value.trim();
+    const acceptsText   = document.getElementById('vsAcceptsText').checked;
+    const email         = document.getElementById('vsEmail').value.trim();
+    const confirmEmail  = document.getElementById('vsConfirmEmail').value.trim();
+    const boothSpaces   = document.getElementById('vsBoothSpaces').value;
+
+    // Validate
+    let valid = true;
+    showErr('vsVendorName',    !vendorName);    if (!vendorName)    valid = false;
+    showErr('vsStreetAddress', !streetAddress); if (!streetAddress) valid = false;
+    showErr('vsCity',          !city);          if (!city)          valid = false;
+    showErr('vsState',         !state);         if (!state)         valid = false;
+    showErr('vsZip',           !zip);           if (!zip)           valid = false;
+    showErr('vsCellPhone',     !cellPhone);     if (!cellPhone)     valid = false;
+    showErr('vsBoothSpaces',   !boothSpaces);   if (!boothSpaces)   valid = false;
+
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    showErr('vsEmail', !emailOk); if (!emailOk) valid = false;
+
+    const emailsMatch = email.toLowerCase() === confirmEmail.toLowerCase();
+    showErr('vsConfirmEmail', !emailsMatch); if (!emailsMatch) valid = false;
+
+    if (!valid) return;
+
+    const btn     = document.getElementById('vsSubmitBtn');
+    const txtEl   = document.getElementById('vsSubmitText');
+    const spinEl  = document.getElementById('vsSubmitSpinner');
+    const errBox  = document.getElementById('vsFormError');
+
+    txtEl.style.display  = 'none';
+    spinEl.style.display = 'inline-flex';
+    btn.disabled         = true;
+    errBox.style.display = 'none';
+
+    try {
+      const resp = await fetch(FUNCTION_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendorName, businessName, streetAddress, city, state, zip,
+          cellPhone, acceptsText, email, confirmEmail,
+          boothSpaces: parseInt(boothSpaces),
+        }),
+      });
+      const data = await resp.json();
+      if (data.success) {
+        // Redirect to confirmation page with registration ID
+        window.location.href = `/vendor-confirmation.html?id=${data.id}`;
+      } else {
+        throw new Error(data.error || 'Submission failed');
+      }
+    } catch(err) {
+      errBox.textContent   = err.message || 'Something went wrong. Please try again.';
+      errBox.style.display = 'block';
+      txtEl.style.display  = 'inline';
+      spinEl.style.display = 'none';
+      btn.disabled         = false;
+    }
+  });
+
+  init();
+</script>
+</body>
+</html>

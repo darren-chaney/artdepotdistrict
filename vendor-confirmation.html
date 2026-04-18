@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Application Confirmed — Depot Days — Art Depot District</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .confirm-wrap { min-height:70vh;display:flex;align-items:center;justify-content:center;padding:60px 24px; }
+    .confirm-card { background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:48px 40px;max-width:560px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.12); }
+    .confirm-icon { font-size:3.5rem;margin-bottom:20px; }
+    .confirm-id { font-family:monospace;font-size:.9rem;color:var(--accent);background:rgba(184,53,53,.08);border:1px solid rgba(184,53,53,.2);border-radius:var(--radius);padding:10px 20px;display:inline-block;margin:16px 0;letter-spacing:.04em; }
+    .confirm-steps { text-align:left;margin:28px 0;display:flex;flex-direction:column;gap:14px; }
+    .confirm-step { display:flex;gap:14px;align-items:flex-start; }
+    .confirm-step-num { width:28px;height:28px;border-radius:50%;background:var(--accent);color:white;font-size:.8rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px; }
+    .confirm-step-text { font-size:.9rem;color:var(--text-secondary);line-height:1.5; }
+  </style>
+</head>
+<body>
+
+<div id="nav-placeholder"></div>
+
+<div class="confirm-wrap">
+  <div class="confirm-card">
+    <div class="confirm-icon">✅</div>
+    <h2 style="font-size:1.8rem;margin-bottom:8px">Application Submitted!</h2>
+    <p style="color:var(--text-secondary);margin-bottom:4px">Thank you for registering as a Depot Days vendor.</p>
+
+    <div class="confirm-id" id="confirmRegId">Loading...</div>
+
+    <div class="confirm-steps">
+      <div class="confirm-step">
+        <div class="confirm-step-num">1</div>
+        <div class="confirm-step-text"><strong>Check your email</strong> — your official PDF document of record is on its way. It includes a QR code for check-in at the event.</div>
+      </div>
+      <div class="confirm-step">
+        <div class="confirm-step-num">2</div>
+        <div class="confirm-step-text"><strong>The Chamber will follow up</strong> with booth assignment details and any additional information you need before the event.</div>
+      </div>
+      <div class="confirm-step">
+        <div class="confirm-step-num">3</div>
+        <div class="confirm-step-text"><strong>Bring your PDF</strong> (printed or digital) to vendor check-in on the day of the event. Staff will scan your QR code to verify your registration.</div>
+      </div>
+    </div>
+
+    <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:28px">
+      Didn't receive an email? Check your spam folder or <a href="/contact.html" style="color:var(--accent)">contact us</a>.
+    </p>
+
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="/depot-days.html" class="btn btn-primary">Back to Depot Days</a>
+      <a href="/index.html" class="btn btn-ghost">Home</a>
+    </div>
+  </div>
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script src="/js/firebase-config.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const id     = params.get('id');
+  const el     = document.getElementById('confirmRegId');
+  if (id) {
+    el.textContent = `Registration ID: ${id}`;
+  } else {
+    el.style.display = 'none';
+  }
+</script>
+</body>
+</html>

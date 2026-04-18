@@ -57,6 +57,7 @@
     <p id="ddTagline" style="font-size:1.2rem;max-width:560px;color:rgba(240,230,206,.8)">Covington's celebration of art, community, food, and classic cars.</p>
     <div class="hero-actions mt-32">
       <a href="/car-show.html" class="btn btn-primary">Car Show Registration</a>
+      <a href="/vendor-signup.html" class="btn btn-primary" id="vendorSignupBtn" style="display:none">Vendor Sign Up</a>
       <a href="/events.html" class="btn btn-outline">View Events Calendar</a>
     </div>
   </div>
@@ -109,118 +110,6 @@
   </div>
 </section>
 
-
-<!-- Vendor Signup (shown only when vendorSignupOpen is true) -->
-<section class="section" id="vendorSignupSection" style="display:none">
-  <div class="container">
-    <span class="eyebrow">Become a Vendor</span>
-    <h2>Vendor <span style="color:var(--accent)">Sign Up</span></h2>
-    <div class="divider"></div>
-    <p style="max-width:600px;margin:0 auto 40px;text-align:center;color:var(--text-secondary)">
-      Interested in having a booth at Depot Days? Complete the form below to submit your vendor application.
-      You'll receive a confirmation email with your official document of record.
-    </p>
-    <div class="vendor-form-wrap">
-      <form id="vendorForm" novalidate>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Vendor Full Name *</label>
-            <input class="form-input" type="text" id="vVendorName" required>
-            <div class="form-error" id="errVendorName">Please enter your name.</div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Business Name <span style="font-weight:400;opacity:.6">(if different)</span></label>
-            <input class="form-input" type="text" id="vBusinessName">
-          </div>
-        </div>
-        <div class="form-row full">
-          <div class="form-group">
-            <label class="form-label">Street Address *</label>
-            <input class="form-input" type="text" id="vStreetAddress" required>
-            <div class="form-error" id="errStreetAddress">Please enter your street address.</div>
-          </div>
-        </div>
-        <div class="form-row three">
-          <div class="form-group">
-            <label class="form-label">City *</label>
-            <input class="form-input" type="text" id="vCity" required>
-            <div class="form-error" id="errCity">Required.</div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">State *</label>
-            <input class="form-input" type="text" id="vState" maxlength="2" placeholder="TN" required>
-            <div class="form-error" id="errState">Required.</div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Zip *</label>
-            <input class="form-input" type="text" id="vZip" inputmode="numeric" maxlength="10" required>
-            <div class="form-error" id="errZip">Required.</div>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Cell Phone *</label>
-            <input class="form-input" type="tel" id="vCellPhone" inputmode="tel" required>
-            <div class="form-error" id="errCellPhone">Please enter your phone number.</div>
-          </div>
-          <div class="form-group">
-            <label class="form-label" style="margin-bottom:10px">&nbsp;</label>
-            <div class="checkbox-row">
-              <input type="checkbox" id="vAcceptsText">
-              <label for="vAcceptsText" style="font-size:.95rem;color:var(--text-secondary);cursor:pointer">I accept text messages</label>
-            </div>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Email Address *</label>
-            <input class="form-input" type="email" id="vEmail" inputmode="email" required>
-            <div class="form-error" id="errEmail">Please enter a valid email.</div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Confirm Email Address *</label>
-            <input class="form-input" type="email" id="vConfirmEmail" inputmode="email" required>
-            <div class="form-error" id="errConfirmEmail">Emails do not match.</div>
-          </div>
-        </div>
-        <div class="form-row full">
-          <div class="form-group">
-            <label class="form-label">Number of Booth Spaces * <span style="font-weight:400;opacity:.7">(each space is 10'×10')</span></label>
-            <select class="form-select" id="vBoothSpaces" required>
-              <option value="">Select...</option>
-              <option value="1">1 space (10'×10')</option>
-              <option value="2">2 spaces (10'×10' each)</option>
-              <option value="3">3 spaces (10'×10' each)</option>
-              <option value="4">4 spaces (10'×10' each)</option>
-            </select>
-            <div class="form-error" id="errBoothSpaces">Please select the number of spaces.</div>
-          </div>
-        </div>
-
-        <div id="vendorFormError" style="display:none;background:rgba(184,53,53,.1);border:1px solid rgba(184,53,53,.3);border-radius:var(--radius);padding:12px 16px;margin:16px 0;font-size:.9rem;color:var(--accent)"></div>
-
-        <button type="submit" class="btn btn-primary" id="vendorSubmitBtn" style="width:100%;margin-top:8px;padding:14px;font-size:1rem">
-          Submit Vendor Application
-        </button>
-        <p style="font-size:.8rem;color:var(--text-muted);margin-top:12px;text-align:center">
-          You will receive a confirmation email with your PDF document of record after submitting.
-        </p>
-      </form>
-
-      <!-- Success state -->
-      <div id="vendorSuccess" style="display:none;text-align:center;padding:20px 0">
-        <div style="font-size:3rem;margin-bottom:16px">✅</div>
-        <h3 style="color:var(--text-primary);margin-bottom:12px">Application Submitted!</h3>
-        <p style="color:var(--text-secondary);margin-bottom:8px">
-          Thank you for applying to be a Depot Days vendor. Your confirmation email with the official PDF document of record is on its way.
-        </p>
-        <p style="color:var(--text-muted);font-size:.85rem">
-          Please check your inbox (and spam folder). Bring your PDF to vendor check-in on the day of the event.
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
 
 <!-- FAQs -->
 <section class="section section-dark">
@@ -300,78 +189,11 @@
 
   getFAQs('Depot Days').then(renderFAQs).catch(() => renderFAQs([]));
 
-  // ── Vendor Signup Toggle ──────────────────────────────
+  // ── Vendor Signup Button Toggle ───────────────────────
   import { getSiteConfig } from '/js/app.js';
   getSiteConfig().then(cfg => {
     if (cfg.vendorSignupOpen) {
-      document.getElementById('vendorSignupSection').style.display = 'block';
-    }
-  });
-
-  // ── Vendor Form Submission ────────────────────────────
-  const FUNCTION_URL = 'https://us-central1-artdepotdistrict.cloudfunctions.net/vendorRegister';
-
-  function showErr(id, show) {
-    document.getElementById(id).style.display = show ? 'block' : 'none';
-  }
-
-  document.getElementById('vendorForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const vendorName    = document.getElementById('vVendorName').value.trim();
-    const businessName  = document.getElementById('vBusinessName').value.trim();
-    const streetAddress = document.getElementById('vStreetAddress').value.trim();
-    const city          = document.getElementById('vCity').value.trim();
-    const state         = document.getElementById('vState').value.trim();
-    const zip           = document.getElementById('vZip').value.trim();
-    const cellPhone     = document.getElementById('vCellPhone').value.trim();
-    const acceptsText   = document.getElementById('vAcceptsText').checked;
-    const email         = document.getElementById('vEmail').value.trim();
-    const confirmEmail  = document.getElementById('vConfirmEmail').value.trim();
-    const boothSpaces   = document.getElementById('vBoothSpaces').value;
-
-    // Client-side validation
-    let valid = true;
-    showErr('errVendorName',    !vendorName);    if (!vendorName)    valid = false;
-    showErr('errStreetAddress', !streetAddress); if (!streetAddress) valid = false;
-    showErr('errCity',          !city);          if (!city)          valid = false;
-    showErr('errState',         !state);         if (!state)         valid = false;
-    showErr('errZip',           !zip);           if (!zip)           valid = false;
-    showErr('errCellPhone',     !cellPhone);     if (!cellPhone)     valid = false;
-    showErr('errBoothSpaces',   !boothSpaces);   if (!boothSpaces)   valid = false;
-
-    const emailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
-    showErr('errEmail', !emailValid); if (!emailValid) valid = false;
-
-    const emailsMatch = email.toLowerCase() === confirmEmail.toLowerCase();
-    showErr('errConfirmEmail', !emailsMatch); if (!emailsMatch) valid = false;
-
-    if (!valid) return;
-
-    const btn    = document.getElementById('vendorSubmitBtn');
-    const errBox = document.getElementById('vendorFormError');
-    btn.textContent = 'Submitting…';
-    btn.disabled    = true;
-    errBox.style.display = 'none';
-
-    try {
-      const resp = await fetch(FUNCTION_URL, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendorName, businessName, streetAddress, city, state, zip, cellPhone, acceptsText, email, confirmEmail, boothSpaces: parseInt(boothSpaces) }),
-      });
-      const data = await resp.json();
-      if (data.success) {
-        document.getElementById('vendorForm').style.display    = 'none';
-        document.getElementById('vendorSuccess').style.display = 'block';
-      } else {
-        throw new Error(data.error || 'Submission failed');
-      }
-    } catch(err) {
-      errBox.textContent   = err.message || 'Something went wrong. Please try again.';
-      errBox.style.display = 'block';
-      btn.textContent = 'Submit Vendor Application';
-      btn.disabled    = false;
+      document.getElementById('vendorSignupBtn').style.display = 'inline-flex';
     }
   });
 </script>
