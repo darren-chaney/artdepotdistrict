@@ -202,7 +202,7 @@ exports.vendorRegister = onRequest(
     }
 
     // Load Chamber email + district info
-    let chamberEmail = "events@artdepotdistrict.com";
+    let chamberEmail = "noreply@797distillery.com";
     let districtName = "Art Depot District";
     try {
       const cfgSnap = await db.doc("site_config/main").get();
@@ -221,7 +221,7 @@ exports.vendorRegister = onRequest(
     // Email to Chamber
     try {
       await resend.emails.send({
-        from:    `${districtName} <events@artdepotdistrict.com>`,
+        from:    `${districtName} <noreply@797distillery.com>`,
         to:      chamberEmail,
         subject: `New Vendor Application — ${regData.vendorName}`,
         html: `
@@ -253,7 +253,7 @@ exports.vendorRegister = onRequest(
     // Confirmation email to vendor
     try {
       await resend.emails.send({
-        from:    `${districtName} <events@artdepotdistrict.com>`,
+        from:    `${districtName} <noreply@797distillery.com>`,
         to:      regData.email,
         subject: `Your Vendor Application is Confirmed — Depot Days`,
         html: `
@@ -341,7 +341,7 @@ exports.weeklyReport = onSchedule(
         }).join("");
 
         await resend.emails.send({
-          from:    "Art Depot District <events@artdepotdistrict.com>",
+          from:    "Art Depot District <noreply@797distillery.com>",
           to:      vendorEmails,
           subject: `Vendor Signups Report — Week of ${weekOf}`,
           html: `
@@ -407,7 +407,7 @@ exports.weeklyReport = onSchedule(
         }).join("");
 
         await resend.emails.send({
-          from:    "Art Depot District <events@artdepotdistrict.com>",
+          from:    "Art Depot District <noreply@797distillery.com>",
           to:      carShowEmails,
           subject: `Car Show Registrations Report — Week of ${weekOf}`,
           html: `
@@ -588,7 +588,7 @@ exports.dailyAnalyticsReport = onSchedule(
 
     try {
       await resend.emails.send({
-        from:    `${districtName} <events@artdepotdistrict.com>`,
+        from:    `${districtName} <noreply@797distillery.com>`,
         to:      emails,
         subject: `Daily Traffic Report — ${dateLabel}`,
         html,
@@ -659,7 +659,7 @@ exports.sendAnalyticsNow = onRequest(
 
     try {
       await resend.emails.send({
-        from:    `${districtName} <events@artdepotdistrict.com>`,
+        from:    `${districtName} <noreply@797distillery.com>`,
         to:      emails,
         subject: `Traffic Report — ${dateLabel}`,
         html,
