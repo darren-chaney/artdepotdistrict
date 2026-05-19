@@ -6,6 +6,7 @@ const { setGlobalOptions } = require("firebase-functions/v2");
 const { defineSecret }     = require("firebase-functions/params");
 const { initializeApp }    = require("firebase-admin/app");
 const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestore");
+const { getAuth }          = require("firebase-admin/auth");
 const PDFDocument = require("pdfkit");
 const QRCode      = require("qrcode");
 const { Resend }  = require("resend");
@@ -756,7 +757,7 @@ exports.generateFilledCarShowForms = onRequest(
       return res.status(401).json({ error: "Authentication required. Please refresh and log in again." });
     }
     try {
-      await admin.auth().verifyIdToken(token);
+      await getAuth().verifyIdToken(token);
     } catch (e) {
       console.error("generateFilledCarShowForms: token verify failed:", e.message);
       return res.status(401).json({ error: "Invalid authentication. Please refresh and log in again." });
