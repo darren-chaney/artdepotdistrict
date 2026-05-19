@@ -411,6 +411,102 @@ exports.carShowRegister = onRequest(
 );
 
 
+// ── People's Choice Vote Submission ───────────────────────
+// Validates voting is open, car exists, applies IP rate limiting,
+// and writes vote to peoples_choice_votes collection.
+exports.submitVote = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+    const db   = getFirestore();
+    const body = req.body || {};
+    const carNumber = parseInt(body.carNumber, 10);
+
+    if (!carNumber || carNumber < 1) {
+      return res.status(400).json({ error: "Valid car number required" });
+    }
+
+    // Capture client IP (Firebase proxies via x-forwarded-for)
+    const fwd = req.headers["x-forwarded-for"] || "";
+    const voterIp = (Array.isArray(fwd) ? fwd[0] : fwd.split(",")[0] || "").trim()
+                    || req.ip || req.connection?.remoteAddress || "unknown";
+
+    try {
+      // 1. Check voting is open + load voting window
+      const year = new Date().getFullYear().toString();
+      const ddSnap = await db.doc(`depot_days/${year}`).get();
+      const dd = ddSnap.exists ? ddSnap.data() : {};
+
+      if (!dd.votingOpen) {
+        return res.status(403).json({
+          error: "Voting is not open right now.",
+          code:  "voting-closed",
+        });
+      }
+
+      // 2. Verify the car exists
+      const carQuery = await db.collection("car_show_registrations")
+        .where("carNumber", "==", carNumber)
+        .limit(1)
+        .get();
+
+      if (carQuery.empty) {
+        return res.status(404).json({
+          error: `Car #${carNumber} doesn't exist. Please double-check the number.`,
+          code:  "car-not-found",
+        });
+      }
+
+      const carDoc  = carQuery.docs[0];
+      const carData = carDoc.data();
+
+      // 3. IP rate limit: max 3 votes per IP per hour as a safety net.
+      // This catches a casual ballot-stuffer trying to vote multiple times
+      // from the same network without breaking families sharing wifi.
+      if (voterIp && voterIp !== "unknown") {
+        const oneHourAgo = Timestamp.fromMillis(Date.now() - 60 * 60 * 1000);
+        const recentVotes = await db.collection("peoples_choice_votes")
+          .where("voterIp", "==", voterIp)
+          .where("timestamp", ">", oneHourAgo)
+          .get();
+
+        if (recentVotes.size >= 3) {
+          return res.status(429).json({
+            error: "Too many votes from this network recently. Please try again later.",
+            code:  "rate-limit",
+          });
+        }
+      }
+
+      // 4. Record the vote
+      const voteRef = await db.collection("peoples_choice_votes").add({
+        carNumber:   carNumber,
+        voterIp:     voterIp,
+        timestamp:   FieldValue.serverTimestamp(),
+        depotYear:   year,
+        userAgent:   (req.headers["user-agent"] || "").substring(0, 200),
+      });
+
+      return res.json({
+        success:   true,
+        voteId:    voteRef.id,
+        carNumber: carNumber,
+        vehicle: {
+          year:  carData.vehicleYear,
+          make:  carData.vehicleMake,
+          model: carData.vehicleModel,
+          color: carData.vehicleColor,
+        },
+      });
+    } catch(e) {
+      console.error("submitVote failed:", e);
+      return res.status(500).json({ error: "Could not submit vote. Please try again." });
+    }
+  }
+);
+
+
 // ── Weekly Report — Monday 8pm Central ────────────────────
 exports.weeklyReport = onSchedule(
   {

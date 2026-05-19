@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vote — Depot Days Car Show — Art Depot District</title>
+  <meta name="description" content="People's Choice voting for the Depot Days Car Show in Covington, Tennessee.">
+  <link rel="stylesheet" href="/css/styles.css">
+  <meta property="og:image" content="https://firebasestorage.googleapis.com/v0/b/artdepotdistrict.firebasestorage.app/o/artdepotdistrict-og-image.png?alt=media&token=76b17545-19d3-41c4-bb0e-d181f2213ae8">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://artdepotdistrict.com/vote.html">
+  <style>
+    /* Vote page specific styles */
+    .vote-wrap {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+    .vote-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px 24px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.08);
+      text-align: center;
+    }
+    .vote-trophy {
+      font-size: 3.5rem;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    .vote-headline {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      color: var(--primary);
+      margin-bottom: 8px;
+      line-height: 1.15;
+    }
+    .vote-sub {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      margin-bottom: 28px;
+    }
+    .vote-number-input {
+      font-size: 3rem;
+      font-weight: 700;
+      text-align: center;
+      width: 100%;
+      max-width: 280px;
+      padding: 16px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      color: var(--accent);
+      font-family: var(--font-display, inherit);
+      letter-spacing: 2px;
+      box-sizing: border-box;
+    }
+    .vote-number-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(184,53,53,.15);
+    }
+    .vote-number-input::-webkit-outer-spin-button,
+    .vote-number-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .vote-number-input[type=number] { -moz-appearance: textfield; }
+    .vote-btn-primary {
+      display: inline-block;
+      width: 100%;
+      max-width: 280px;
+      padding: 18px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-top: 24px;
+      box-sizing: border-box;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .vote-btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(184,53,53,.3);
+    }
+    .vote-btn-primary:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+    .vote-btn-ghost {
+      display: inline-block;
+      padding: 14px 24px;
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: .9rem;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    .vote-confirm-box {
+      background: var(--bg);
+      border: 2px solid var(--accent);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 24px 0;
+    }
+    .vote-confirm-num {
+      font-size: 4rem;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 8px;
+      font-family: var(--font-display, inherit);
+    }
+    .vote-confirm-label {
+      font-size: .85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .vote-error {
+      color: #b83535;
+      background: #fdf2f2;
+      border: 1px solid #f8d7da;
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin: 16px 0;
+      font-size: .9rem;
+    }
+    .vote-info {
+      color: var(--text-secondary);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin: 16px 0;
+      font-size: .9rem;
+      line-height: 1.5;
+    }
+    .vote-status-line {
+      font-size: .85rem;
+      color: var(--text-muted);
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .vote-vehicle-detail {
+      font-size: 1.1rem;
+      color: var(--text-primary);
+      font-weight: 600;
+      margin-top: 8px;
+    }
+    @media (max-width: 480px) {
+      .vote-headline { font-size: 1.5rem; }
+      .vote-trophy { font-size: 3rem; }
+      .vote-number-input { font-size: 2.5rem; }
+      .vote-confirm-num { font-size: 3.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="nav-placeholder"></div>
+
+<section class="section" style="padding-top:48px">
+  <div class="vote-wrap">
+
+    <!-- Loading state -->
+    <div id="state-loading" class="vote-card">
+      <div class="loading-spinner" style="margin:32px auto"></div>
+      <p style="color:var(--text-muted)">Loading...</p>
+    </div>
+
+    <!-- State: Voting is closed (before voting opens) -->
+    <div id="state-closed-before" class="vote-card" style="display:none">
+      <div class="vote-trophy">🏆</div>
+      <h1 class="vote-headline">People's Choice</h1>
+      <p class="vote-sub">Depot Days Car Show</p>
+      <div class="vote-info">
+        <strong>Voting hasn't started yet.</strong><br>
+        <span id="votingScheduled"></span>
+      </div>
+      <p style="font-size:.85rem;color:var(--text-muted);margin-top:24px">
+        Come back during the show to cast your vote for the People's Choice winner!
+      </p>
+    </div>
+
+    <!-- State: Voting has closed -->
+    <div id="state-closed-after" class="vote-card" style="display:none">
+      <div class="vote-trophy">🏁</div>
+      <h1 class="vote-headline">Voting Has Closed</h1>
+      <p class="vote-sub">Thanks for participating!</p>
+      <p style="margin-top:20px">The People's Choice winner will be announced in person at the show.</p>
+    </div>
+
+    <!-- State: Already voted -->
+    <div id="state-already-voted" class="vote-card" style="display:none">
+      <div class="vote-trophy">✅</div>
+      <h1 class="vote-headline">You've Already Voted</h1>
+      <p class="vote-sub">Thanks for casting your vote!</p>
+      <p style="margin-top:20px">Only one vote per voter is allowed. The People's Choice winner will be announced at the show.</p>
+    </div>
+
+    <!-- State: Voting is open — entry form -->
+    <div id="state-entry" class="vote-card" style="display:none">
+      <div class="vote-trophy">🏆</div>
+      <h1 class="vote-headline">People's Choice Voting</h1>
+      <p class="vote-sub">Enter the number of your favorite car</p>
+
+      <form id="voteForm" onsubmit="return false">
+        <input
+          id="voteNumber"
+          class="vote-number-input"
+          type="number"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          min="1"
+          max="9999"
+          autocomplete="off"
+          placeholder="#42"
+          required
+        >
+        <div id="voteError" class="vote-error" style="display:none"></div>
+        <button type="submit" class="vote-btn-primary" id="voteSubmit">Vote</button>
+      </form>
+
+      <div class="vote-status-line">
+        One vote per voter • Voting closes at <span id="voteCloseLabel">2:00 PM</span>
+      </div>
+    </div>
+
+    <!-- State: Confirmation — "Vote for car #42?" -->
+    <div id="state-confirm" class="vote-card" style="display:none">
+      <div class="vote-confirm-label">Confirm Your Vote</div>
+      <div class="vote-confirm-num" id="confirmNum">#—</div>
+      <p style="font-size:1.1rem;color:var(--text-secondary);margin:16px 0 24px">Are you sure you want to vote for this car?</p>
+      <div id="confirmError" class="vote-error" style="display:none"></div>
+      <button type="button" class="vote-btn-primary" id="confirmYes">Yes, Cast My Vote</button>
+      <button type="button" class="vote-btn-ghost" onclick="goBackToEntry()">Cancel — pick a different number</button>
+    </div>
+
+    <!-- State: Vote submitted successfully -->
+    <div id="state-success" class="vote-card" style="display:none">
+      <div class="vote-trophy">🎉</div>
+      <h1 class="vote-headline">Thanks for Voting!</h1>
+      <p class="vote-sub">Your vote has been counted.</p>
+
+      <div class="vote-confirm-box">
+        <div class="vote-confirm-label">You Voted For</div>
+        <div class="vote-confirm-num" id="successNum">#—</div>
+        <div class="vote-vehicle-detail" id="successVehicle"></div>
+      </div>
+
+      <p style="font-size:.95rem;color:var(--text-secondary)">
+        The People's Choice winner will be announced in person at the show.
+        Enjoy Depot Days!
+      </p>
+    </div>
+
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+
+<script src="/js/firebase-config.js"></script>
+<script src="/js/layout.js"></script>
+<script type="module">
+  import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { initializeFirestore, doc, getDoc }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ── Init Firestore ──
+  const cfg = window.__ART_DEPOT_CONFIG;
+  const app = getApps().length ? getApps()[0] : initializeApp(cfg);
+  const db  = window.__ART_DEPOT_DB || initializeFirestore(app, { experimentalForceLongPolling: true });
+  if (!window.__ART_DEPOT_DB) window.__ART_DEPOT_DB = db;
+
+  const CLOUD_FN_URL = 'https://us-central1-artdepotdistrict.cloudfunctions.net/submitVote';
+  const VOTE_COOKIE_NAME = 'adc_voted_2026';
+  const VOTE_LS_KEY      = 'adc_voted_2026';
+
+  // ── State management ──
+  function showState(id) {
+    ['loading','closed-before','closed-after','already-voted','entry','confirm','success'].forEach(s => {
+      const el = document.getElementById('state-' + s);
+      if (el) el.style.display = (s === id) ? 'block' : 'none';
+    });
+  }
+
+  // ── Vote tracking (cookie + localStorage) ──
+  function hasVoted() {
+    if (localStorage.getItem(VOTE_LS_KEY)) return true;
+    return document.cookie.split(';').some(c => c.trim().startsWith(VOTE_COOKIE_NAME + '='));
+  }
+  function markVoted(carNumber) {
+    const value = `${carNumber}|${new Date().toISOString()}`;
+    localStorage.setItem(VOTE_LS_KEY, value);
+    // Cookie expires Dec 31 of voting year
+    const expires = new Date('2026-12-31T23:59:59');
+    document.cookie = `${VOTE_COOKIE_NAME}=${carNumber}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
+  }
+
+  // ── Format time for display ──
+  function formatTime(timeStr) {
+    if (!timeStr || !timeStr.match(/^\d{1,2}:\d{2}$/)) return timeStr || '';
+    const [h, m] = timeStr.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    const hour12 = h === 0 ? 12 : (h > 12 ? h - 12 : h);
+    return `${hour12}:${m.toString().padStart(2,'0')} ${period}`;
+  }
+  function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+  }
+
+  // ── Initial load: figure out which state to show ──
+  async function init() {
+    // Pre-fill from URL ?car=42
+    const params = new URLSearchParams(window.location.search);
+    const carParam = params.get('car');
+    if (carParam && /^\d+$/.test(carParam)) {
+      document.getElementById('voteNumber').value = carParam;
+    }
+
+    // Already voted? Show that immediately.
+    if (hasVoted()) {
+      showState('already-voted');
+      return;
+    }
+
+    // Check voting status from depot_days
+    try {
+      const year = new Date().getFullYear().toString();
+      const snap = await getDoc(doc(db, 'depot_days', year));
+      const dd = snap.exists() ? snap.data() : {};
+
+      const isOpen     = !!dd.votingOpen;
+      const voteDate   = dd.votingDate || '';
+      const openTime   = dd.votingOpenTime || '';
+      const closeTime  = dd.votingCloseTime || '';
+
+      if (isOpen) {
+        // Voting is open right now
+        if (closeTime) document.getElementById('voteCloseLabel').textContent = formatTime(closeTime);
+        showState('entry');
+        // Focus number input (helps mobile users)
+        setTimeout(() => document.getElementById('voteNumber').focus(), 100);
+      } else {
+        // Voting closed. Decide if it's "before" (scheduled but not yet) or "after"
+        // Heuristic: if we have a date and it's today or future, show "before".
+        // If date is past, show "after".
+        let isBefore = true;
+        if (voteDate) {
+          const dateObj = new Date(voteDate + 'T23:59:59');
+          if (dateObj < new Date()) isBefore = false;
+        }
+
+        if (isBefore && voteDate) {
+          let line = '';
+          if (voteDate)  line += formatDate(voteDate);
+          if (openTime)  line += (line ? ', from ' : 'From ') + formatTime(openTime);
+          if (closeTime) line += ' to ' + formatTime(closeTime);
+          document.getElementById('votingScheduled').textContent = line || 'Voting will open during the show.';
+          showState('closed-before');
+        } else {
+          showState('closed-after');
+        }
+      }
+    } catch(e) {
+      console.error('Failed to load voting status:', e);
+      showState('closed-after');
+    }
+  }
+
+  // ── Form submission: entry → confirm ──
+  document.getElementById('voteForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const num = parseInt(document.getElementById('voteNumber').value, 10);
+    const errEl = document.getElementById('voteError');
+    errEl.style.display = 'none';
+
+    if (!num || num < 1) {
+      errEl.textContent = 'Please enter a valid car number.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    document.getElementById('confirmNum').textContent = '#' + num;
+    document.getElementById('confirmError').style.display = 'none';
+    showState('confirm');
+  });
+
+  // ── Confirm → submit vote ──
+  document.getElementById('confirmYes').addEventListener('click', async () => {
+    const num = parseInt(document.getElementById('voteNumber').value, 10);
+    const btn = document.getElementById('confirmYes');
+    const errEl = document.getElementById('confirmError');
+    errEl.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    try {
+      const response = await fetch(CLOUD_FN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ carNumber: num }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        const msg = result.error || 'Could not submit vote. Please try again.';
+        // If voting just closed / already voted server-side, show appropriate state
+        if (result.code === 'already-voted') {
+          markVoted(num);
+          showState('already-voted');
+          return;
+        }
+        if (result.code === 'voting-closed') {
+          showState('closed-after');
+          return;
+        }
+        errEl.textContent = msg;
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Yes, Cast My Vote';
+        return;
+      }
+
+      // Success! Mark voted, show success
+      markVoted(num);
+      document.getElementById('successNum').textContent = '#' + result.carNumber;
+      const v = result.vehicle || {};
+      const detail = [v.year, v.make, v.model].filter(Boolean).join(' ');
+      document.getElementById('successVehicle').textContent = detail || '';
+      showState('success');
+    } catch(e) {
+      console.error('Vote submit failed:', e);
+      errEl.textContent = 'Network error. Please try again.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Yes, Cast My Vote';
+    }
+  });
+
+  // ── Back button from confirm to entry ──
+  window.goBackToEntry = () => {
+    document.getElementById('voteError').style.display = 'none';
+    showState('entry');
+    setTimeout(() => document.getElementById('voteNumber').focus(), 100);
+  };
+
+  init();
+</script>
+</body>
+</html>
