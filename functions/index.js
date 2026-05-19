@@ -341,6 +341,76 @@ exports.previewVendorPDF = onRequest(
   }
 );
 
+
+// ── Car Show Registration ─────────────────────────────────
+// Assigns next sequential carNumber atomically via Firestore transaction.
+// Safe to run before backfill — uses total record count as a safety net so
+// new preregs don't collide with the backfill assignment.
+exports.carShowRegister = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+    const db   = getFirestore();
+    const body = req.body || {};
+
+    // Basic validation
+    if (!body.firstName || !body.lastName || !body.email
+        || !body.vehicleYear || !body.vehicleMake || !body.vehicleModel) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    if (!/\S+@\S+\.\S+/.test(body.email)) {
+      return res.status(400).json({ error: "Valid email required" });
+    }
+
+    try {
+      const result = await db.runTransaction(async (tx) => {
+        // Find current max carNumber. orderBy excludes docs without the field,
+        // so this returns the highest existing number (or empty if none yet).
+        const maxQuery = await tx.get(
+          db.collection("car_show_registrations")
+            .orderBy("carNumber", "desc")
+            .limit(1)
+        );
+        // Safety net: count ALL records too. Handles the pre-backfill state
+        // where unnumbered records exist (so a new prereg gets #10, not #1).
+        const allQuery = await tx.get(db.collection("car_show_registrations"));
+
+        const maxNum     = maxQuery.empty ? 0 : (maxQuery.docs[0].data().carNumber || 0);
+        const totalCount = allQuery.size;
+        const nextNum    = Math.max(maxNum, totalCount) + 1;
+
+        const newRef = db.collection("car_show_registrations").doc();
+        tx.set(newRef, {
+          firstName:     body.firstName.trim(),
+          lastName:      body.lastName.trim(),
+          email:         body.email.trim().toLowerCase(),
+          phone:         (body.phone || "").trim(),
+          vehicleYear:   body.vehicleYear.toString().trim(),
+          vehicleMake:   body.vehicleMake.trim(),
+          vehicleModel:  body.vehicleModel.trim(),
+          vehicleClass:  body.vehicleClass || "",
+          vehicleColor:  (body.vehicleColor || "").trim(),
+          vehicleEngine: (body.vehicleEngine || "").trim(),
+          notes:         (body.notes || "").trim(),
+          carNumber:     nextNum,
+          submittedAt:   FieldValue.serverTimestamp(),
+          status:        "new",
+          source:        "online",
+        });
+
+        return { id: newRef.id, carNumber: nextNum };
+      });
+
+      return res.json({ success: true, id: result.id, carNumber: result.carNumber });
+    } catch(e) {
+      console.error("carShowRegister failed:", e);
+      return res.status(500).json({ error: "Registration failed. Please try again." });
+    }
+  }
+);
+
+
 // ── Weekly Report — Monday 8pm Central ────────────────────
 exports.weeklyReport = onSchedule(
   {

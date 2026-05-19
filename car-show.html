@@ -34,12 +34,16 @@
       <span class="eyebrow">Pre-Registration</span>
       <h2 style="font-size:2rem;margin-bottom:8px">Register Your Vehicle</h2>
       <div class="divider"></div>
-      <p style="margin-bottom:40px">Fill out the form below to pre-register. No payment required — registration is free. You'll receive a confirmation once submitted.</p>
+      <p style="margin-bottom:40px">Fill out the form below to pre-register. No payment required — registration is free. You'll receive your car number once submitted.</p>
 
       <!-- Success Message -->
       <div class="form-success" id="formSuccess">
         <h3>You're Registered! 🏆</h3>
-        <p>Thanks for pre-registering for the Depot Days Car Show. We'll see you there!</p>
+        <div id="carNumberDisplay" style="margin:24px 0;padding:24px;background:var(--bg);border:2px solid var(--accent);border-radius:var(--radius-lg);text-align:center">
+          <div style="font-size:.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Your Car Number</div>
+          <div id="carNumberValue" style="font-size:3.5rem;font-weight:700;color:var(--accent);line-height:1;font-family:var(--font-display, inherit)">#—</div>
+        </div>
+        <p>Thanks for pre-registering for the Depot Days Car Show. Remember your car number — you'll need it on the day of the show.</p>
         <p style="margin-top:12px;font-size:.9rem">Questions? <a href="/contact.html" style="color:var(--accent)">Contact us</a></p>
       </div>
 
@@ -245,9 +249,16 @@
     const result = await submitCarShowRegistration(data);
 
     if (result.success) {
+      // Show the car number in the success message
+      if (result.carNumber) {
+        document.getElementById('carNumberValue').textContent = `#${result.carNumber}`;
+      }
       form.style.display = 'none';
       document.getElementById('formSuccess').style.display = 'block';
+      // Scroll the success message into view
+      document.getElementById('formSuccess').scrollIntoView({ behavior: 'smooth', block: 'center' });
     } else {
+      document.getElementById('formError').textContent = result.error || 'Something went wrong. Please try again.';
       document.getElementById('formError').style.display = 'block';
       submitText.style.display    = 'inline';
       submitSpinner.style.display = 'none';

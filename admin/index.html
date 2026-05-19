@@ -182,14 +182,16 @@
       <h4 style="font-size:1rem;margin-bottom:16px">Registrations</h4>
       <div class="export-bar">
         <button class="btn btn-ghost" onclick="exportCSV()" style="font-size:.78rem">Export CSV</button>
+        <button class="btn btn-ghost" onclick="assignCarNumbers()" style="font-size:.78rem">Assign Car Numbers</button>
         <span id="regCount" style="font-family:var(--font-ui);font-size:.8rem;color:var(--text-muted)"></span>
+        <span id="assignMsg" style="font-family:var(--font-ui);font-size:.8rem;color:var(--accent);display:none"></span>
       </div>
       <div class="admin-card" style="padding:0;overflow:hidden">
         <table class="admin-table" id="regTable">
           <thead>
-            <tr><th>Name</th><th>Vehicle</th><th>Class</th><th>Contact</th><th>Date</th></tr>
+            <tr><th style="width:80px">Car #</th><th>Name</th><th>Vehicle</th><th>Class</th><th>Contact</th><th>Date</th></tr>
           </thead>
-          <tbody id="regTbody"><tr><td colspan="5" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr></tbody>
+          <tbody id="regTbody"><tr><td colspan="6" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1099,13 +1101,23 @@ let regData = [];
 async function loadRegistrations() {
   const snap = await getDocs(collection(db,'car_show_registrations'));
   regData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  regData.sort((a,b) => (b.submittedAt?.seconds||0) - (a.submittedAt?.seconds||0));
+  // Sort by carNumber asc; records without a number go to the end (sorted by submittedAt).
+  regData.sort((a,b) => {
+    if (a.carNumber && b.carNumber) return a.carNumber - b.carNumber;
+    if (a.carNumber) return -1;
+    if (b.carNumber) return 1;
+    return (a.submittedAt?.seconds||0) - (b.submittedAt?.seconds||0);
+  });
   document.getElementById('regCount').textContent = `${regData.length} registration${regData.length!==1?'s':''}`;
   const tbody = document.getElementById('regTbody');
-  if (!regData.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">No registrations yet.</td></tr>'; return; }
+  if (!regData.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted)">No registrations yet.</td></tr>'; return; }
   tbody.innerHTML = regData.map(r => {
     const date = r.submittedAt?.toDate ? r.submittedAt.toDate().toLocaleDateString() : '—';
+    const carNum = r.carNumber
+      ? `<strong style="color:var(--accent);font-size:1.05rem">#${r.carNumber}</strong>`
+      : `<span style="color:var(--text-muted);font-style:italic;font-size:.85rem">—</span>`;
     return `<tr>
+      <td>${carNum}</td>
       <td style="color:var(--text-primary)">${r.firstName} ${r.lastName}<br><span class="reg-detail">${r.email}</span></td>
       <td>${r.vehicleYear} ${r.vehicleMake} ${r.vehicleModel}<br><span class="reg-detail">${r.vehicleColor||''}</span></td>
       <td>${r.vehicleClass||'—'}</td>
@@ -1117,8 +1129,9 @@ async function loadRegistrations() {
 
 window.exportCSV = () => {
   if (!regData.length) return;
-  const headers = ['First','Last','Email','Phone','Year','Make','Model','Class','Color','Engine','Notes','Date'];
+  const headers = ['Car #','First','Last','Email','Phone','Year','Make','Model','Class','Color','Engine','Notes','Date'];
   const rows = regData.map(r => [
+    r.carNumber||'',
     r.firstName,r.lastName,r.email,r.phone||'',
     r.vehicleYear,r.vehicleMake,r.vehicleModel,
     r.vehicleClass||'',r.vehicleColor||'',r.vehicleEngine||'',
@@ -1129,6 +1142,56 @@ window.exportCSV = () => {
   const blob = new Blob([csv], { type: 'text/csv' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a'); a.href=url; a.download='car-show-registrations.csv'; a.click();
+};
+
+// ── Assign Car Numbers (backfill) ─────────────────────────
+// Assigns sequential car numbers to any registrations missing one,
+// in chronological order of when they registered. Safe to run multiple
+// times — only touches records without a carNumber.
+window.assignCarNumbers = async () => {
+  if (!regData.length) {
+    alert('No registrations to number.');
+    return;
+  }
+  const unnumbered = regData
+    .filter(r => !r.carNumber)
+    .sort((a,b) => (a.submittedAt?.seconds||0) - (b.submittedAt?.seconds||0));
+
+  if (!unnumbered.length) {
+    alert('All registrations already have car numbers assigned.');
+    return;
+  }
+
+  const numbered = regData.filter(r => r.carNumber);
+  const currentMax = numbered.length ? Math.max(...numbered.map(r => r.carNumber)) : 0;
+
+  const msg = unnumbered.length === regData.length
+    ? `Assign car numbers #1 through #${unnumbered.length} to all ${unnumbered.length} registrations, in order of when they registered?`
+    : `Assign car numbers #${currentMax+1} through #${currentMax+unnumbered.length} to the ${unnumbered.length} registration${unnumbered.length!==1?'s':''} that don't have one yet?`;
+
+  if (!confirm(msg)) return;
+
+  const statusEl = document.getElementById('assignMsg');
+  statusEl.style.display = 'inline';
+  statusEl.style.color = 'var(--accent)';
+  statusEl.textContent = 'Assigning...';
+
+  let nextNum = currentMax + 1;
+  let count = 0;
+  try {
+    for (const rec of unnumbered) {
+      await updateDoc(doc(db,'car_show_registrations', rec.id), { carNumber: nextNum });
+      nextNum++;
+      count++;
+    }
+    statusEl.textContent = `Assigned ${count} car number${count!==1?'s':''}.`;
+    setTimeout(() => statusEl.style.display = 'none', 4000);
+    loadRegistrations();
+  } catch(e) {
+    console.error('assignCarNumbers failed:', e);
+    statusEl.textContent = `Error after ${count} record${count!==1?'s':''}. Check console.`;
+    statusEl.style.color = '#b83535';
+  }
 };
 
 // ── Depot Days ────────────────────────────────────────────

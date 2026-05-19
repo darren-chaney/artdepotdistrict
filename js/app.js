@@ -84,14 +84,26 @@ export async function getFAQs(category = null) {
 }
 
 // ── Car Show Registration ────────────────────────────────
+// Routes through Cloud Function so carNumber is assigned atomically.
 export async function submitCarShowRegistration(data) {
   try {
-    const db = getDB(); if (!db) return { success: false, error: 'Not initialized' };
-    const docRef = await addDoc(collection(db,'car_show_registrations'), {
-      ...data, submittedAt: serverTimestamp(), status: 'new'
-    });
-    return { success: true, id: docRef.id };
-  } catch(e) { console.error('submitCarShow:', e); return { success: false, error: e.message }; }
+    const response = await fetch(
+      'https://us-central1-artdepotdistrict.cloudfunctions.net/carShowRegister',
+      {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(data),
+      }
+    );
+    const result = await response.json();
+    if (!response.ok) {
+      return { success: false, error: result.error || 'Registration failed' };
+    }
+    return { success: true, id: result.id, carNumber: result.carNumber };
+  } catch(e) {
+    console.error('submitCarShow:', e);
+    return { success: false, error: e.message };
+  }
 }
 
 // ── Business Card HTML ───────────────────────────────────
