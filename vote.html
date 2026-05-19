@@ -72,28 +72,39 @@
     .vote-btn-primary {
       display: inline-block;
       width: 100%;
-      max-width: 280px;
-      padding: 18px;
-      background: var(--accent);
+      max-width: 320px;
+      padding: 24px 32px;
+      background: linear-gradient(180deg, #c84545 0%, #a82828 100%);
       color: #fff;
-      border: none;
+      border: 3px solid #8b1f1f;
       border-radius: var(--radius);
-      font-size: 1.1rem;
-      font-weight: 600;
-      letter-spacing: .5px;
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: 2px;
       text-transform: uppercase;
       cursor: pointer;
-      margin-top: 24px;
+      margin-top: 28px;
       box-sizing: border-box;
-      transition: transform .15s, box-shadow .15s;
+      box-shadow: 0 6px 0 #8b1f1f, 0 10px 24px rgba(184, 53, 53, .4);
+      transition: transform .12s, box-shadow .12s;
+      animation: votePulse 2s ease-in-out infinite;
     }
     .vote-btn-primary:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(184,53,53,.3);
+      transform: translateY(2px);
+      box-shadow: 0 4px 0 #8b1f1f, 0 6px 16px rgba(184, 53, 53, .5);
+    }
+    .vote-btn-primary:active:not(:disabled) {
+      transform: translateY(6px);
+      box-shadow: 0 0 0 #8b1f1f, 0 2px 8px rgba(184, 53, 53, .4);
     }
     .vote-btn-primary:disabled {
-      opacity: .5;
+      opacity: .55;
       cursor: not-allowed;
+      animation: none;
+    }
+    @keyframes votePulse {
+      0%, 100% { box-shadow: 0 6px 0 #8b1f1f, 0 10px 24px rgba(184, 53, 53, .4); }
+      50%      { box-shadow: 0 6px 0 #8b1f1f, 0 10px 36px rgba(184, 53, 53, .65); }
     }
     .vote-btn-ghost {
       display: inline-block;
@@ -165,6 +176,11 @@
       .vote-trophy { font-size: 3rem; }
       .vote-number-input { font-size: 2.5rem; }
       .vote-confirm-num { font-size: 3.5rem; }
+      .vote-btn-primary {
+        font-size: 1.35rem;
+        padding: 22px 24px;
+        max-width: 100%;
+      }
     }
   </style>
 </head>
@@ -416,10 +432,15 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ carNumber: num }),
       });
-      const result = await response.json();
+
+      let result = {};
+      try { result = await response.json(); } catch { result = {}; }
 
       if (!response.ok || !result.success) {
-        const msg = result.error || 'Could not submit vote. Please try again.';
+        // Log full response info to console for debugging
+        console.error('Vote failed. status:', response.status, 'result:', result);
+
+        const msg = result.error || `Could not submit vote (error ${response.status}). Please try again.`;
         // If voting just closed / already voted server-side, show appropriate state
         if (result.code === 'already-voted') {
           markVoted(num);

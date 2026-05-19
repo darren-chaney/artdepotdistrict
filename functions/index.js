@@ -464,14 +464,22 @@ exports.submitVote = onRequest(
       // 3. IP rate limit: max 3 votes per IP per hour as a safety net.
       // This catches a casual ballot-stuffer trying to vote multiple times
       // from the same network without breaking families sharing wifi.
+      // NOTE: Querying by voterIp alone (no composite index needed) then
+      // filtering the time window in code. Volume per IP is tiny so this
+      // stays cheap and avoids requiring an index.
       if (voterIp && voterIp !== "unknown") {
-        const oneHourAgo = Timestamp.fromMillis(Date.now() - 60 * 60 * 1000);
-        const recentVotes = await db.collection("peoples_choice_votes")
+        const oneHourAgoMs = Date.now() - 60 * 60 * 1000;
+        const ipVotes = await db.collection("peoples_choice_votes")
           .where("voterIp", "==", voterIp)
-          .where("timestamp", ">", oneHourAgo)
           .get();
 
-        if (recentVotes.size >= 3) {
+        const recentCount = ipVotes.docs.reduce((n, d) => {
+          const ts = d.data().timestamp;
+          const ms = ts && ts.toMillis ? ts.toMillis() : 0;
+          return ms > oneHourAgoMs ? n + 1 : n;
+        }, 0);
+
+        if (recentCount >= 3) {
           return res.status(429).json({
             error: "Too many votes from this network recently. Please try again later.",
             code:  "rate-limit",
