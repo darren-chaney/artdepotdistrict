@@ -336,9 +336,11 @@
       <div class="export-bar">
         <button class="btn btn-ghost" onclick="exportCSV()" style="font-size:.78rem">Export CSV</button>
         <button class="btn btn-ghost" onclick="assignCarNumbers()" style="font-size:.78rem">Assign Car Numbers</button>
-        <button class="btn btn-ghost" onclick="openPrintFormsModal()" style="font-size:.78rem">🖨️ Print Pre-Numbered Forms</button>
+        <button class="btn btn-ghost" onclick="openPrintFormsModal()" style="font-size:.78rem">🖨️ Blank Forms</button>
+        <button class="btn btn-ghost" onclick="printAllPreregs()" style="font-size:.78rem" id="printAllBtn">🖨️ Pre-Filled (All Preregs)</button>
         <span id="regCount" style="font-family:var(--font-ui);font-size:.8rem;color:var(--text-muted)"></span>
         <span id="assignMsg" style="font-family:var(--font-ui);font-size:.8rem;color:var(--accent);display:none"></span>
+        <span id="printAllMsg" style="font-family:var(--font-ui);font-size:.8rem;color:var(--accent);display:none"></span>
       </div>
       <div class="admin-card" style="padding:0;overflow:hidden">
         <table class="admin-table" id="regTable">
@@ -1311,19 +1313,50 @@ async function loadRegistrations() {
   if (!regData.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted)">No registrations yet.</td></tr>'; return; }
   tbody.innerHTML = regData.map(r => {
     const date = r.submittedAt?.toDate ? r.submittedAt.toDate().toLocaleDateString() : '—';
+    const fullDate = r.submittedAt?.toDate ? r.submittedAt.toDate().toLocaleString() : '—';
     const carNum = r.carNumber
       ? `<strong style="color:var(--accent);font-size:1.05rem">#${r.carNumber}</strong>`
       : `<span style="color:var(--text-muted);font-style:italic;font-size:.85rem">—</span>`;
-    return `<tr>
-      <td>${carNum}</td>
-      <td style="color:var(--text-primary)">${r.firstName} ${r.lastName}<br><span class="reg-detail">${r.email}</span></td>
-      <td>${r.vehicleYear} ${r.vehicleMake} ${r.vehicleModel}<br><span class="reg-detail">${r.vehicleColor||''}</span></td>
-      <td>${r.vehicleClass||'—'}</td>
-      <td>${r.phone||'—'}</td>
-      <td>${date}</td>
-    </tr>`;
+    // Escape HTML in user-provided notes
+    const notesSafe = (r.notes || '(none)').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `
+      <tr class="reg-row" style="cursor:pointer" onclick="toggleRegRow('${r.id}')">
+        <td>${carNum}</td>
+        <td style="color:var(--text-primary)">${r.firstName||''} ${r.lastName||''}<br><span class="reg-detail">${r.email||''}</span></td>
+        <td>${r.vehicleYear||''} ${r.vehicleMake||''} ${r.vehicleModel||''}<br><span class="reg-detail">${r.vehicleColor||''}</span></td>
+        <td>${r.vehicleClass||'—'}</td>
+        <td>${r.phone||'—'}</td>
+        <td>${date} <span id="chev-${r.id}" style="display:inline-block;color:var(--text-muted);margin-left:4px;transition:transform .15s">▾</span></td>
+      </tr>
+      <tr id="detail-${r.id}" style="display:none;background:var(--bg)">
+        <td colspan="6" style="padding:16px 20px;border-top:1px dashed var(--border)">
+          <div style="display:grid;grid-template-columns:120px 1fr;gap:6px 16px;font-size:.88rem;color:var(--text-secondary)">
+            <strong>Engine:</strong><span>${r.vehicleEngine || '<span style="color:var(--text-muted);font-style:italic">(not specified)</span>'}</span>
+            <strong>Notes:</strong><span style="white-space:pre-wrap">${notesSafe}</span>
+            <strong>Email:</strong><span>${r.email || '—'}</span>
+            <strong>Phone:</strong><span>${r.phone || '—'}</span>
+            <strong>Source:</strong><span>${r.source === 'walkup' ? '🚶 Walk-up' : '💻 Online prereg'}</span>
+            <strong>Submitted:</strong><span>${fullDate}</span>
+            <strong>Record ID:</strong><span style="font-family:monospace;font-size:.78rem;color:var(--text-muted)">${r.id}</span>
+          </div>
+        </td>
+      </tr>`;
   }).join('');
 }
+
+// ── Toggle row expand/collapse ────────────────────────────
+window.toggleRegRow = (id) => {
+  const detail = document.getElementById('detail-' + id);
+  const chev   = document.getElementById('chev-' + id);
+  if (!detail) return;
+  if (detail.style.display === 'none') {
+    detail.style.display = 'table-row';
+    if (chev) chev.textContent = '▴';
+  } else {
+    detail.style.display = 'none';
+    if (chev) chev.textContent = '▾';
+  }
+};
 
 window.exportCSV = () => {
   if (!regData.length) return;
@@ -1818,6 +1851,81 @@ window.generateForms = async () => {
     statEl.style.display = 'none';
     btn.disabled = false;
     btn.textContent = 'Generate & Download PDF';
+  }
+};
+
+// ── Print All Pre-Registered Forms (pre-filled PDFs) ──────
+// Requires admin auth — sends the Firebase ID token so the Cloud Function
+// can verify the request is authenticated before returning data with PII.
+window.printAllPreregs = async () => {
+  const user = auth.currentUser;
+  if (!user) { alert('Not logged in. Please refresh and log in again.'); return; }
+
+  if (!regData.length) { alert('No registrations to print.'); return; }
+
+  const numbered = regData.filter(r => r.carNumber);
+  if (!numbered.length) {
+    alert('No registrations have car numbers yet. Click "Assign Car Numbers" first.');
+    return;
+  }
+  if (numbered.length < regData.length) {
+    const unnumbered = regData.length - numbered.length;
+    if (!confirm(`${unnumbered} registration${unnumbered!==1?'s':''} don't have car numbers yet and will be skipped. Print ${numbered.length} pre-filled forms?`)) return;
+  }
+
+  const btn = document.getElementById('printAllBtn');
+  const msg = document.getElementById('printAllMsg');
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+  msg.style.display = 'inline';
+  msg.style.color = 'var(--text-secondary)';
+  msg.textContent = `Building PDF with ${numbered.length} forms...`;
+
+  try {
+    const token = await user.getIdToken();
+    const response = await fetch(
+      'https://us-central1-artdepotdistrict.cloudfunctions.net/generateFilledCarShowForms',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify({ all: true }),
+      }
+    );
+
+    if (!response.ok) {
+      let errMsg = `Failed (status ${response.status})`;
+      try { const j = await response.json(); errMsg = j.error || errMsg; } catch {}
+      msg.style.color = '#b83535';
+      msg.textContent = errMsg;
+      btn.disabled = false;
+      btn.textContent = '🖨️ Pre-Filled (All Preregs)';
+      return;
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `car-show-prereg-forms-${new Date().toISOString().split('T')[0]}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    msg.style.color = 'var(--accent)';
+    msg.textContent = `✓ Downloaded ${numbered.length} pre-filled forms.`;
+    btn.disabled = false;
+    btn.textContent = '🖨️ Pre-Filled (All Preregs)';
+    setTimeout(() => { msg.style.display = 'none'; }, 5000);
+  } catch(e) {
+    console.error('printAllPreregs failed:', e);
+    msg.style.color = '#b83535';
+    msg.textContent = 'Network error during generation. Please try again.';
+    btn.disabled = false;
+    btn.textContent = '🖨️ Pre-Filled (All Preregs)';
   }
 };
 

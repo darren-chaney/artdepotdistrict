@@ -724,6 +724,264 @@ function drawCarShowForm(doc, carNum, qrBuffer, c) {
 }
 
 
+// ── Pre-Filled Car Show Forms (PDF generator, admin only) ──
+// Generates a PDF with one page per registered car. Each form is pre-filled
+// with the registrant's info (name, vehicle, etc.) but keeps a blank signature
+// line for day-of signing. Auth-required since it returns PII (emails/phones).
+exports.generateFilledCarShowForms = onRequest(
+  { cors: true, timeoutSeconds: 120, memory: "512MiB" },
+  async (req, res) => {
+    if (req.method !== "POST" && req.method !== "GET") {
+      return res.status(405).json({ error: "Method not allowed" });
+    }
+
+    // Auth check — requires a valid Firebase Auth ID token.
+    // The admin sends this as Authorization: Bearer <token>.
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
+    if (!token) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    try {
+      await admin.auth().verifyIdToken(token);
+    } catch (e) {
+      console.error("Auth token invalid:", e.message);
+      return res.status(401).json({ error: "Invalid authentication" });
+    }
+
+    try {
+      const db = getFirestore();
+      const snap = await db.collection("car_show_registrations").get();
+      const regs = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(r => r.carNumber)
+        .sort((a, b) => a.carNumber - b.carNumber);
+
+      if (!regs.length) {
+        return res.status(404).json({ error: "No registrations with car numbers found. Run 'Assign Car Numbers' first." });
+      }
+
+      // Pre-generate QR codes in parallel
+      const qrPromises = regs.map(r =>
+        QRCode.toBuffer(`https://artdepotdistrict.com/vote.html?car=${r.carNumber}`, {
+          width: 200,
+          margin: 1,
+          color: { dark: "#1e3a5c", light: "#ffffff" },
+        })
+      );
+      const qrBuffers = await Promise.all(qrPromises);
+
+      const pdfBuffer = await buildFilledFormsPDF(regs, qrBuffers);
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", "attachment; filename=car-show-prereg-forms.pdf");
+      return res.send(pdfBuffer);
+    } catch(e) {
+      console.error("generateFilledCarShowForms failed:", e);
+      return res.status(500).json({ error: "PDF generation failed: " + e.message });
+    }
+  }
+);
+
+function buildFilledFormsPDF(regs, qrBuffers) {
+  return new Promise((resolve, reject) => {
+    const doc    = new PDFDocument({ margin: 36, size: "LETTER" });
+    const chunks = [];
+    doc.on("data",  c  => chunks.push(c));
+    doc.on("end",   () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+
+    const W    = doc.page.width;
+    const H    = doc.page.height;
+    const navy = "#1e3a5c";
+    const red  = "#b83535";
+    const gray = "#6a6a6a";
+
+    for (let i = 0; i < regs.length; i++) {
+      if (i > 0) doc.addPage();
+      drawCarShowFormFilled(doc, regs[i], qrBuffers[i], { W, H, navy, red, gray });
+    }
+    doc.end();
+  });
+}
+
+function drawCarShowFormFilled(doc, reg, qrBuffer, c) {
+  const { W, H, navy, red, gray } = c;
+  const left   = 36;
+  const right  = W - 36;
+  const fieldW = right - left;
+  const carNum = reg.carNumber;
+
+  // ── HEADER (same as blank form) ───────────────────────
+  doc.fontSize(9).font("Helvetica-Bold").fillColor(red)
+     .text("ART DEPOT DISTRICT", left, 42);
+  doc.fontSize(22).font("Helvetica-Bold").fillColor(navy)
+     .text("DEPOT DAYS CAR SHOW", left, 56);
+  doc.fontSize(11).font("Helvetica").fillColor(navy)
+     .text("Pre-Registration Form", left, 84);
+  doc.fontSize(8.5).font("Helvetica").fillColor(gray)
+     .text("Saturday, June 13, 2026  •  Covington, Tennessee", left, 102);
+
+  const QR_SIZE = 95;
+  const qrX     = right - QR_SIZE;
+  doc.fontSize(8).font("Helvetica-Bold").fillColor(gray)
+     .text("CAR NUMBER", qrX - 80, 42, { width: 75, align: "right" });
+  doc.fontSize(44).font("Helvetica-Bold").fillColor(red)
+     .text(`#${carNum}`, qrX - 110, 54, { width: 105, align: "right" });
+  doc.image(qrBuffer, qrX, 42, { width: QR_SIZE, height: QR_SIZE });
+  doc.fontSize(7).font("Helvetica-Bold").fillColor(navy)
+     .text("SCAN TO VOTE", qrX, 42 + QR_SIZE + 3, { width: QR_SIZE, align: "center" });
+  doc.fontSize(6.5).font("Helvetica").fillColor(gray)
+     .text("People's Choice", qrX, 42 + QR_SIZE + 13, { width: QR_SIZE, align: "center" });
+
+  const headerEndY = 160;
+  doc.moveTo(left, headerEndY).lineTo(right, headerEndY)
+     .strokeColor(navy).lineWidth(1.5).stroke();
+
+  // ── PRE-REGISTERED badge ──────────────────────────────
+  let y = headerEndY + 10;
+  // Subtle green pill background
+  const badgeW = 320;
+  const badgeX = left + (fieldW - badgeW) / 2;
+  doc.roundedRect(badgeX, y - 2, badgeW, 18, 9).fillColor("#e6f3ef").fill();
+  doc.fontSize(9).font("Helvetica-Bold").fillColor("#1a5f6e")
+     .text("PRE-REGISTERED  —  Please verify info and sign below",
+       badgeX, y + 2, { width: badgeW, align: "center" });
+  y += 26;
+
+  // ── Helpers ───────────────────────────────────────────
+  function fieldLabel(text, x, ly) {
+    doc.fontSize(7.5).font("Helvetica-Bold").fillColor(navy)
+       .text(text.toUpperCase(), x, ly);
+  }
+  function fieldValue(text, x, vy, w) {
+    doc.fontSize(11).font("Helvetica").fillColor("#111111")
+       .text(text || "—", x, vy, { width: w });
+  }
+  function fieldLine(x, ly, w) {
+    doc.moveTo(x, ly).lineTo(x + w, ly)
+       .strokeColor("#bbbbbb").lineWidth(0.7).stroke();
+  }
+
+  // ── OWNER INFO ────────────────────────────────────────
+  doc.fontSize(10).font("Helvetica-Bold").fillColor(red)
+     .text("OWNER INFORMATION", left, y);
+  y += 16;
+
+  fieldLabel("Full Name", left, y);
+  fieldValue(`${reg.firstName || ""} ${reg.lastName || ""}`.trim(), left, y + 11, fieldW);
+  // Thin underline under the value to suggest "field box"
+  doc.moveTo(left, y + 28).lineTo(left + fieldW, y + 28)
+     .strokeColor("#dddddd").lineWidth(0.5).stroke();
+  y += 36;
+
+  const col2X = left + fieldW / 2 + 8;
+  const colW  = fieldW / 2 - 8;
+  fieldLabel("Phone Number", left, y);
+  fieldValue(reg.phone || "—", left, y + 11, colW);
+  doc.moveTo(left, y + 28).lineTo(left + colW, y + 28).strokeColor("#dddddd").lineWidth(0.5).stroke();
+  fieldLabel("Email Address", col2X, y);
+  fieldValue(reg.email || "—", col2X, y + 11, colW);
+  doc.moveTo(col2X, y + 28).lineTo(col2X + colW, y + 28).strokeColor("#dddddd").lineWidth(0.5).stroke();
+  y += 38;
+
+  // ── VEHICLE INFO ──────────────────────────────────────
+  doc.fontSize(10).font("Helvetica-Bold").fillColor(red)
+     .text("VEHICLE INFORMATION", left, y);
+  y += 16;
+
+  const yearW  = fieldW * 0.20;
+  const makeW  = fieldW * 0.36;
+  const modelW = fieldW * 0.36;
+  const yearX  = left;
+  const makeX  = left + yearW + 8;
+  const modelX = makeX + makeW + 8;
+  fieldLabel("Year", yearX, y);
+  fieldValue(reg.vehicleYear || "—", yearX, y + 11, yearW);
+  doc.moveTo(yearX, y + 28).lineTo(yearX + yearW, y + 28).strokeColor("#dddddd").lineWidth(0.5).stroke();
+  fieldLabel("Make", makeX, y);
+  fieldValue(reg.vehicleMake || "—", makeX, y + 11, makeW);
+  doc.moveTo(makeX, y + 28).lineTo(makeX + makeW, y + 28).strokeColor("#dddddd").lineWidth(0.5).stroke();
+  fieldLabel("Model", modelX, y);
+  fieldValue(reg.vehicleModel || "—", modelX, y + 11, modelW);
+  doc.moveTo(modelX, y + 28).lineTo(modelX + modelW, y + 28).strokeColor("#dddddd").lineWidth(0.5).stroke();
+  y += 38;
+
+  fieldLabel("Color", left, y);
+  fieldValue(reg.vehicleColor || "—", left, y + 11, colW);
+  doc.moveTo(left, y + 28).lineTo(left + colW, y + 28).strokeColor("#dddddd").lineWidth(0.5).stroke();
+  fieldLabel("Engine", col2X, y);
+  fieldValue(reg.vehicleEngine || "—", col2X, y + 11, colW);
+  doc.moveTo(col2X, y + 28).lineTo(col2X + colW, y + 28).strokeColor("#dddddd").lineWidth(0.5).stroke();
+  y += 38;
+
+  // Vehicle Class — check the box of the selected class
+  fieldLabel("Vehicle Class", left, y);
+  y += 16;
+  const classes = [
+    "Classic (Pre-1980)", "Muscle Car",      "Street Rod / Custom", "Import / Tuner",
+    "Trucks & SUVs",      "Modern Performance", "Other",            ""
+  ];
+  const boxSize = 8;
+  const colWidth = fieldW / 4;
+  for (let r = 0; r < 2; r++) {
+    for (let cIdx = 0; cIdx < 4; cIdx++) {
+      const label = classes[r * 4 + cIdx];
+      if (!label) continue;
+      const x = left + cIdx * colWidth;
+      doc.rect(x, y + 1, boxSize, boxSize).strokeColor("#444444").lineWidth(0.7).stroke();
+      // Draw a check mark (X) if this class matches the registered class
+      if (reg.vehicleClass && reg.vehicleClass === label) {
+        doc.moveTo(x + 1.5, y + 3).lineTo(x + boxSize - 1.5, y + boxSize - 1)
+           .moveTo(x + boxSize - 1.5, y + 3).lineTo(x + 1.5, y + boxSize - 1)
+           .strokeColor(red).lineWidth(1.5).stroke();
+      }
+      doc.fontSize(8.5).font("Helvetica").fillColor("#222222")
+         .text(label, x + boxSize + 5, y, { width: colWidth - boxSize - 8 });
+    }
+    y += 16;
+  }
+  y += 6;
+
+  // Notes — let PDFKit wrap naturally
+  fieldLabel("Notes / Additional Information", left, y);
+  y += 12;
+  doc.fontSize(10).font("Helvetica").fillColor("#222222")
+     .text(reg.notes || "(none provided)", left, y, { width: fieldW, lineGap: 1 });
+  // Capture where notes ended; allocate at least 24px height for short notes
+  const notesEndY = Math.max(doc.y, y + 24);
+  y = notesEndY + 12;
+
+  // ── FOOTER (acknowledgement + blank signature) ────────
+  doc.moveTo(left, y).lineTo(right, y).strokeColor("#dddddd").lineWidth(0.5).stroke();
+  y += 14;
+
+  doc.fontSize(8.5).font("Helvetica").fillColor("#333333")
+     .text(
+       "By signing below, I acknowledge that the information above is correct and I agree to " +
+       "follow all car show rules and conduct myself respectfully. I understand that registration " +
+       "does not guarantee a placement and that entry is at the discretion of event organizers.",
+       left, y, { width: fieldW, lineGap: 2 }
+     );
+  y += 44;
+
+  // BLANK signature line for day-of signing
+  fieldLabel("Signature (sign on arrival)", left, y);
+  fieldLine(left, y + 22, colW);
+  fieldLabel("Date", col2X, y);
+  fieldLine(col2X, y + 22, colW);
+  y += 40;
+
+  // Footer note
+  doc.fontSize(7.5).font("Helvetica-Oblique").fillColor(gray)
+     .text(
+       "Voters will scan the QR code at the top of this form to vote for this car as " +
+       "People's Choice during the show.  •  artdepotdistrict.com",
+       left, H - 56, { width: fieldW, align: "center" }
+     );
+}
+
+
 // ── People's Choice Vote Submission ───────────────────────
 // Validates voting is open, car exists, applies IP rate limiting,
 // and writes vote to peoples_choice_votes collection.
