@@ -728,25 +728,38 @@ function drawCarShowForm(doc, carNum, qrBuffer, c) {
 // Generates a PDF with one page per registered car. Each form is pre-filled
 // with the registrant's info (name, vehicle, etc.) but keeps a blank signature
 // line for day-of signing. Auth-required since it returns PII (emails/phones).
+//
+// CORS is handled manually here (not via `cors: true`) because we need to
+// explicitly allow the Authorization header in the preflight response.
 exports.generateFilledCarShowForms = onRequest(
-  { cors: true, timeoutSeconds: 120, memory: "512MiB" },
+  { timeoutSeconds: 120, memory: "512MiB" },
   async (req, res) => {
+    // ── Manual CORS (allows Authorization header) ──
+    res.set("Access-Control-Allow-Origin",  "*");
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.set("Access-Control-Max-Age",       "3600");
+
+    if (req.method === "OPTIONS") {
+      return res.status(204).send("");
+    }
     if (req.method !== "POST" && req.method !== "GET") {
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    // Auth check — requires a valid Firebase Auth ID token.
-    // The admin sends this as Authorization: Bearer <token>.
+    // ── Auth check ─────────────────────────────────────
+    // Requires a valid Firebase Auth ID token sent as `Authorization: Bearer <token>`.
     const authHeader = req.headers.authorization || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
     if (!token) {
-      return res.status(401).json({ error: "Authentication required" });
+      console.error("generateFilledCarShowForms: no auth token in request");
+      return res.status(401).json({ error: "Authentication required. Please refresh and log in again." });
     }
     try {
       await admin.auth().verifyIdToken(token);
     } catch (e) {
-      console.error("Auth token invalid:", e.message);
-      return res.status(401).json({ error: "Invalid authentication" });
+      console.error("generateFilledCarShowForms: token verify failed:", e.message);
+      return res.status(401).json({ error: "Invalid authentication. Please refresh and log in again." });
     }
 
     try {
