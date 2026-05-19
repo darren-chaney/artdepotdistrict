@@ -411,6 +411,319 @@ exports.carShowRegister = onRequest(
 );
 
 
+// ── Day-of Walk-up Registration (admin only) ──────────────
+// Admin enters an EXPLICIT carNumber (taken from the pre-printed form they
+// grabbed off the stack). Function validates the number isn't taken, then
+// saves the registration. Different from carShowRegister which auto-assigns.
+exports.carShowWalkup = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+    const db   = getFirestore();
+    const body = req.body || {};
+    const carNumber = parseInt(body.carNumber, 10);
+
+    // Basic validation
+    if (!carNumber || carNumber < 1) {
+      return res.status(400).json({ error: "Car number is required." });
+    }
+    if (!body.firstName || !body.lastName
+        || !body.vehicleYear || !body.vehicleMake || !body.vehicleModel) {
+      return res.status(400).json({ error: "Missing required fields (name + vehicle year/make/model)." });
+    }
+    if (body.email && !/\S+@\S+\.\S+/.test(body.email)) {
+      return res.status(400).json({ error: "Email format is invalid." });
+    }
+
+    try {
+      const result = await db.runTransaction(async (tx) => {
+        // Check the number isn't already in use
+        const existing = await tx.get(
+          db.collection("car_show_registrations")
+            .where("carNumber", "==", carNumber)
+            .limit(1)
+        );
+        if (!existing.empty) {
+          const ex = existing.docs[0].data();
+          throw new Error(
+            `Car #${carNumber} is already taken by ${ex.firstName || ""} ${ex.lastName || ""}. ` +
+            `Use a different number.`
+          );
+        }
+
+        const newRef = db.collection("car_show_registrations").doc();
+        tx.set(newRef, {
+          firstName:     body.firstName.trim(),
+          lastName:      body.lastName.trim(),
+          email:         (body.email || "").trim().toLowerCase(),
+          phone:         (body.phone || "").trim(),
+          vehicleYear:   body.vehicleYear.toString().trim(),
+          vehicleMake:   body.vehicleMake.trim(),
+          vehicleModel:  body.vehicleModel.trim(),
+          vehicleClass:  body.vehicleClass || "",
+          vehicleColor:  (body.vehicleColor || "").trim(),
+          vehicleEngine: (body.vehicleEngine || "").trim(),
+          notes:         (body.notes || "").trim(),
+          carNumber:     carNumber,
+          submittedAt:   FieldValue.serverTimestamp(),
+          status:        "new",
+          source:        "walkup",
+        });
+
+        return { id: newRef.id, carNumber: carNumber };
+      });
+
+      return res.json({ success: true, id: result.id, carNumber: result.carNumber });
+    } catch(e) {
+      console.error("carShowWalkup failed:", e);
+      // Surface user-friendly validation messages
+      const msg = e.message && e.message.startsWith("Car #")
+        ? e.message
+        : "Registration failed. Please try again.";
+      return res.status(400).json({ error: msg });
+    }
+  }
+);
+
+
+// ── Pre-Numbered Car Show Forms (PDF generator) ───────────
+// Builds a multi-page PDF with one blank registration form per page.
+// Each form is pre-printed with a unique car number and QR code linking
+// to /vote.html?car=N for People's Choice voting.
+exports.generateCarShowForms = onRequest(
+  { cors: true, timeoutSeconds: 120, memory: "512MiB" },
+  async (req, res) => {
+    if (req.method !== "POST" && req.method !== "GET") {
+      return res.status(405).json({ error: "Method not allowed" });
+    }
+
+    // Accept params from query string OR JSON body
+    const params      = req.method === "POST" ? (req.body || {}) : req.query;
+    const startNumber = parseInt(params.startNumber, 10);
+    const count       = parseInt(params.count, 10);
+
+    if (!startNumber || startNumber < 1) {
+      return res.status(400).json({ error: "Valid startNumber required" });
+    }
+    if (!count || count < 1 || count > 500) {
+      return res.status(400).json({ error: "Count must be between 1 and 500" });
+    }
+
+    try {
+      // Pre-generate all QR codes in parallel (faster than serial during PDF build)
+      const qrPromises = [];
+      for (let i = 0; i < count; i++) {
+        const carNum = startNumber + i;
+        const voteUrl = `https://artdepotdistrict.com/vote.html?car=${carNum}`;
+        qrPromises.push(
+          QRCode.toBuffer(voteUrl, {
+            width: 200,
+            margin: 1,
+            color: { dark: "#1e3a5c", light: "#ffffff" },
+          })
+        );
+      }
+      const qrBuffers = await Promise.all(qrPromises);
+
+      const pdfBuffer = await buildCarShowFormsPDF(startNumber, count, qrBuffers);
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=car-show-forms-${startNumber}-to-${startNumber + count - 1}.pdf`
+      );
+      return res.send(pdfBuffer);
+    } catch(e) {
+      console.error("generateCarShowForms failed:", e);
+      return res.status(500).json({ error: "PDF generation failed: " + e.message });
+    }
+  }
+);
+
+// ── PDF builder: one blank registration form per page ─────
+function buildCarShowFormsPDF(startNumber, count, qrBuffers) {
+  return new Promise((resolve, reject) => {
+    const doc    = new PDFDocument({ margin: 36, size: "LETTER" });
+    const chunks = [];
+    doc.on("data",  c  => chunks.push(c));
+    doc.on("end",   () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+
+    const W    = doc.page.width;   // 612
+    const H    = doc.page.height;  // 792
+    const navy = "#1e3a5c";
+    const red  = "#b83535";
+    const gray = "#6a6a6a";
+
+    for (let i = 0; i < count; i++) {
+      if (i > 0) doc.addPage();
+      const carNum = startNumber + i;
+      drawCarShowForm(doc, carNum, qrBuffers[i], { W, H, navy, red, gray });
+    }
+    doc.end();
+  });
+}
+
+function drawCarShowForm(doc, carNum, qrBuffer, c) {
+  const { W, H, navy, red, gray } = c;
+  const left   = 36;
+  const right  = W - 36;
+  const fieldW = right - left;
+
+  // ── HEADER (top zone) ─────────────────────────────────
+  // Left side: titles
+  doc.fontSize(9).font("Helvetica-Bold").fillColor(red)
+     .text("ART DEPOT DISTRICT", left, 42);
+  doc.fontSize(22).font("Helvetica-Bold").fillColor(navy)
+     .text("DEPOT DAYS CAR SHOW", left, 56);
+  doc.fontSize(11).font("Helvetica").fillColor(navy)
+     .text("Pre-Registration Form", left, 84);
+  doc.fontSize(8.5).font("Helvetica").fillColor(gray)
+     .text("Saturday, June 13, 2026  •  Covington, Tennessee", left, 102);
+
+  // Right side: big car number + QR code
+  const QR_SIZE = 95;
+  const qrX     = right - QR_SIZE;
+
+  // "CAR #" label
+  doc.fontSize(8).font("Helvetica-Bold").fillColor(gray)
+     .text("CAR NUMBER", qrX - 80, 42, { width: 75, align: "right" });
+
+  // Huge red car number
+  doc.fontSize(44).font("Helvetica-Bold").fillColor(red)
+     .text(`#${carNum}`, qrX - 110, 54, { width: 105, align: "right" });
+
+  // QR code with label
+  doc.image(qrBuffer, qrX, 42, { width: QR_SIZE, height: QR_SIZE });
+  doc.fontSize(7).font("Helvetica-Bold").fillColor(navy)
+     .text("SCAN TO VOTE", qrX, 42 + QR_SIZE + 3, { width: QR_SIZE, align: "center" });
+  doc.fontSize(6.5).font("Helvetica").fillColor(gray)
+     .text("People's Choice", qrX, 42 + QR_SIZE + 13, { width: QR_SIZE, align: "center" });
+
+  // Header divider
+  const headerEndY = 160;
+  doc.moveTo(left, headerEndY).lineTo(right, headerEndY)
+     .strokeColor(navy).lineWidth(1.5).stroke();
+
+  // ── FIELDS (middle zone) ──────────────────────────────
+  let y = headerEndY + 22;
+
+  function fieldLabel(text, x, ly) {
+    doc.fontSize(7.5).font("Helvetica-Bold").fillColor(navy)
+       .text(text.toUpperCase(), x, ly);
+  }
+  function fieldLine(x, ly, w) {
+    doc.moveTo(x, ly).lineTo(x + w, ly)
+       .strokeColor("#bbbbbb").lineWidth(0.7).stroke();
+  }
+
+  // Section: OWNER INFO
+  doc.fontSize(10).font("Helvetica-Bold").fillColor(red)
+     .text("OWNER INFORMATION", left, y);
+  y += 18;
+
+  // Full name (full width)
+  fieldLabel("Full Name", left, y);
+  fieldLine(left, y + 22, fieldW);
+  y += 32;
+
+  // Phone | Email (two columns)
+  const col2X = left + fieldW / 2 + 8;
+  const colW  = fieldW / 2 - 8;
+  fieldLabel("Phone Number", left, y);
+  fieldLine(left, y + 22, colW);
+  fieldLabel("Email Address (optional)", col2X, y);
+  fieldLine(col2X, y + 22, colW);
+  y += 36;
+
+  // Section: VEHICLE
+  doc.fontSize(10).font("Helvetica-Bold").fillColor(red)
+     .text("VEHICLE INFORMATION", left, y);
+  y += 18;
+
+  // Year | Make | Model (three columns: 1fr / 2fr / 2fr)
+  const yearW  = fieldW * 0.20;
+  const makeW  = fieldW * 0.36;
+  const modelW = fieldW * 0.36;
+  const yearX  = left;
+  const makeX  = left + yearW + 8;
+  const modelX = makeX + makeW + 8;
+  fieldLabel("Year", yearX, y);   fieldLine(yearX, y + 22, yearW);
+  fieldLabel("Make", makeX, y);   fieldLine(makeX, y + 22, makeW);
+  fieldLabel("Model", modelX, y); fieldLine(modelX, y + 22, modelW);
+  y += 36;
+
+  // Color | Engine (two columns)
+  fieldLabel("Color", left, y);
+  fieldLine(left, y + 22, colW);
+  fieldLabel("Engine (optional)", col2X, y);
+  fieldLine(col2X, y + 22, colW);
+  y += 36;
+
+  // Vehicle Class (full width with checkboxes)
+  fieldLabel("Vehicle Class — check one", left, y);
+  y += 16;
+
+  // Two rows of 4 classes
+  const classes = [
+    "Classic (Pre-1980)", "Muscle Car",      "Street Rod / Custom", "Import / Tuner",
+    "Trucks & SUVs",      "Modern Performance", "Other",            ""
+  ];
+  const boxSize = 8;
+  const colWidth = fieldW / 4;
+  for (let r = 0; r < 2; r++) {
+    for (let cIdx = 0; cIdx < 4; cIdx++) {
+      const label = classes[r * 4 + cIdx];
+      if (!label) continue;
+      const x = left + cIdx * colWidth;
+      // Checkbox square
+      doc.rect(x, y + 1, boxSize, boxSize).strokeColor("#444444").lineWidth(0.7).stroke();
+      // Label
+      doc.fontSize(8.5).font("Helvetica").fillColor("#222222")
+         .text(label, x + boxSize + 5, y, { width: colWidth - boxSize - 8 });
+    }
+    y += 16;
+  }
+  y += 6;
+
+  // Notes (full width, 2 lines)
+  fieldLabel("Notes / Additional Information", left, y);
+  fieldLine(left, y + 22, fieldW);
+  fieldLine(left, y + 38, fieldW);
+  y += 50;
+
+  // ── FOOTER (acknowledgement + signature) ──────────────
+  // Section divider
+  doc.moveTo(left, y).lineTo(right, y).strokeColor("#dddddd").lineWidth(0.5).stroke();
+  y += 14;
+
+  doc.fontSize(8.5).font("Helvetica").fillColor("#333333")
+     .text(
+       "By signing below, I acknowledge that I agree to follow all car show rules and conduct " +
+       "myself respectfully. I understand that registration does not guarantee a placement and " +
+       "that entry is at the discretion of event organizers.",
+       left, y, { width: fieldW, lineGap: 2 }
+     );
+  y += 38;
+
+  // Signature | Date (two columns)
+  fieldLabel("Signature", left, y);
+  fieldLine(left, y + 22, colW);
+  fieldLabel("Date", col2X, y);
+  fieldLine(col2X, y + 22, colW);
+  y += 40;
+
+  // Footer note
+  doc.fontSize(7.5).font("Helvetica-Oblique").fillColor(gray)
+     .text(
+       "Voters will scan the QR code at the top of this form to vote for this car as " +
+       "People's Choice during the show.  •  artdepotdistrict.com",
+       left, H - 56, { width: fieldW, align: "center" }
+     );
+}
+
+
 // ── People's Choice Vote Submission ───────────────────────
 // Validates voting is open, car exists, applies IP rate limiting,
 // and writes vote to peoples_choice_votes collection.

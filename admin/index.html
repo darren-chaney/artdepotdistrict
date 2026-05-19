@@ -244,11 +244,99 @@
         </table>
       </div>
 
+      <!-- Add Walk-up Registration -->
+      <div class="admin-card" style="margin-bottom:32px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:12px">
+          <div>
+            <h4 style="font-size:1rem;margin-bottom:4px">➕ Add Walk-up Registration</h4>
+            <p style="font-size:.85rem;color:var(--text-muted);margin:0">Enter a car using a pre-printed form number, day-of at the gate.</p>
+          </div>
+          <button class="btn btn-ghost" onclick="toggleWalkupForm()" id="walkupToggleBtn" style="font-size:.78rem">Open Form</button>
+        </div>
+        <div id="walkupFormBox" style="display:none;padding-top:8px;border-top:1px solid var(--border)">
+          <div class="form-row" style="margin-top:16px">
+            <div class="form-group" style="max-width:200px">
+              <label class="form-label">Car Number *</label>
+              <input class="form-input" type="number" id="wuCarNumber" inputmode="numeric" placeholder="e.g. 15" style="font-size:1.3rem;font-weight:700;color:var(--accent)">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">First Name *</label>
+              <input class="form-input" type="text" id="wuFirst">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Last Name *</label>
+              <input class="form-input" type="text" id="wuLast">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input class="form-input" type="tel" id="wuPhone">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input class="form-input" type="email" id="wuEmail">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Year *</label>
+              <input class="form-input" type="number" id="wuYear" inputmode="numeric" placeholder="1969">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Make *</label>
+              <input class="form-input" type="text" id="wuMake" placeholder="Chevrolet">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Model *</label>
+              <input class="form-input" type="text" id="wuModel" placeholder="Camaro">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Class</label>
+              <select class="form-input" id="wuClass">
+                <option value="">— select —</option>
+                <option>Classic (Pre-1980)</option>
+                <option>Muscle Car</option>
+                <option>Street Rod / Custom</option>
+                <option>Import / Tuner</option>
+                <option>Trucks &amp; SUVs</option>
+                <option>Modern Performance</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Color</label>
+              <input class="form-input" type="text" id="wuColor">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Engine</label>
+              <input class="form-input" type="text" id="wuEngine">
+            </div>
+          </div>
+          <div class="form-row full">
+            <div class="form-group">
+              <label class="form-label">Notes</label>
+              <textarea class="form-textarea" id="wuNotes" rows="2"></textarea>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:8px">
+            <button class="btn btn-primary" onclick="submitWalkup()" id="wuSubmitBtn">Add Registration</button>
+            <button class="btn btn-ghost" onclick="clearWalkupForm()" style="font-size:.85rem">Clear</button>
+            <span id="wuMsg" style="font-size:.9rem;color:var(--accent);display:none"></span>
+          </div>
+        </div>
+      </div>
+
       <!-- Registrations -->
       <h4 style="font-size:1rem;margin-bottom:16px">Registrations</h4>
       <div class="export-bar">
         <button class="btn btn-ghost" onclick="exportCSV()" style="font-size:.78rem">Export CSV</button>
         <button class="btn btn-ghost" onclick="assignCarNumbers()" style="font-size:.78rem">Assign Car Numbers</button>
+        <button class="btn btn-ghost" onclick="openPrintFormsModal()" style="font-size:.78rem">🖨️ Print Pre-Numbered Forms</button>
         <span id="regCount" style="font-family:var(--font-ui);font-size:.8rem;color:var(--text-muted)"></span>
         <span id="assignMsg" style="font-family:var(--font-ui);font-size:.8rem;color:var(--accent);display:none"></span>
       </div>
@@ -877,6 +965,42 @@
   </div>
 </div>
 
+<!-- Print Pre-Numbered Forms Modal -->
+<div class="admin-modal-overlay" id="printFormsModal">
+  <div class="admin-modal">
+    <span class="admin-modal-close" onclick="closeModal('printFormsModal')">&times;</span>
+    <h3>🖨️ Generate Pre-Numbered Forms</h3>
+    <p style="font-size:.9rem;color:var(--text-secondary);margin-bottom:20px">
+      Each page is a blank 8.5×11 registration form pre-printed with a unique car number
+      and a QR code that voters scan to vote for that car. Print, cut as needed, and stack
+      them at the gate.
+    </p>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Start at Car Number</label>
+        <input class="form-input" type="number" id="pfStartNum" min="1" inputmode="numeric"
+               style="font-size:1.3rem;font-weight:700;color:var(--accent)">
+        <span style="font-size:.78rem;color:var(--text-muted);margin-top:4px;display:block" id="pfStartHint"></span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">How Many Forms</label>
+        <input class="form-input" type="number" id="pfCount" min="1" max="500" value="100" inputmode="numeric"
+               style="font-size:1.3rem;font-weight:700;color:var(--accent)">
+        <span style="font-size:.78rem;color:var(--text-muted);margin-top:4px;display:block">Max 500 per batch</span>
+      </div>
+    </div>
+    <p id="pfRangeLabel" style="font-size:.95rem;color:var(--text-primary);margin:16px 0;padding:12px;background:var(--bg);border-radius:var(--radius);border-left:3px solid var(--accent)">
+      Will generate forms #— through #—
+    </p>
+    <div id="pfError" class="form-error-msg" style="display:none;margin-bottom:12px"></div>
+    <div style="display:flex;gap:12px;margin-top:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="generateForms()" id="pfGenBtn">Generate &amp; Download PDF</button>
+      <button class="btn btn-ghost" onclick="closeModal('printFormsModal')">Cancel</button>
+      <span id="pfStatusMsg" style="font-size:.9rem;color:var(--text-secondary);display:none"></span>
+    </div>
+  </div>
+</div>
+
 <script src="/js/firebase-config.js"></script>
 <script type="module">
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -1493,6 +1617,209 @@ function startPCAutoRefresh() {
 function stopPCAutoRefresh() {
   if (pcRefreshTimer) { clearInterval(pcRefreshTimer); pcRefreshTimer = null; }
 }
+
+// ── Walk-up Registration ──────────────────────────────────
+window.toggleWalkupForm = () => {
+  const box = document.getElementById('walkupFormBox');
+  const btn = document.getElementById('walkupToggleBtn');
+  const isHidden = box.style.display === 'none';
+  box.style.display = isHidden ? 'block' : 'none';
+  btn.textContent   = isHidden ? 'Close Form' : 'Open Form';
+  if (isHidden) {
+    // Auto-suggest next available car number
+    suggestNextWalkupNumber();
+    setTimeout(() => document.getElementById('wuCarNumber').focus(), 100);
+  }
+};
+
+function suggestNextWalkupNumber() {
+  const numbered = (regData || []).filter(r => r.carNumber);
+  const max = numbered.length ? Math.max(...numbered.map(r => r.carNumber)) : 0;
+  document.getElementById('wuCarNumber').value = max + 1;
+}
+
+window.clearWalkupForm = () => {
+  ['wuCarNumber','wuFirst','wuLast','wuPhone','wuEmail','wuYear','wuMake','wuModel','wuColor','wuEngine','wuNotes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('wuClass').value = '';
+  document.getElementById('wuMsg').style.display = 'none';
+  suggestNextWalkupNumber();
+  document.getElementById('wuCarNumber').focus();
+};
+
+window.submitWalkup = async () => {
+  const btn = document.getElementById('wuSubmitBtn');
+  const msg = document.getElementById('wuMsg');
+  const data = {
+    carNumber:     document.getElementById('wuCarNumber').value,
+    firstName:     document.getElementById('wuFirst').value.trim(),
+    lastName:      document.getElementById('wuLast').value.trim(),
+    phone:         document.getElementById('wuPhone').value.trim(),
+    email:         document.getElementById('wuEmail').value.trim(),
+    vehicleYear:   document.getElementById('wuYear').value.trim(),
+    vehicleMake:   document.getElementById('wuMake').value.trim(),
+    vehicleModel:  document.getElementById('wuModel').value.trim(),
+    vehicleClass:  document.getElementById('wuClass').value,
+    vehicleColor:  document.getElementById('wuColor').value.trim(),
+    vehicleEngine: document.getElementById('wuEngine').value.trim(),
+    notes:         document.getElementById('wuNotes').value.trim(),
+  };
+
+  if (!data.carNumber || !data.firstName || !data.lastName
+      || !data.vehicleYear || !data.vehicleMake || !data.vehicleModel) {
+    msg.style.display = 'inline';
+    msg.style.color = '#b83535';
+    msg.textContent = 'Please fill in Car #, name, and vehicle year/make/model.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  msg.style.display = 'inline';
+  msg.style.color = 'var(--text-secondary)';
+  msg.textContent  = 'Saving registration...';
+
+  try {
+    const response = await fetch(
+      'https://us-central1-artdepotdistrict.cloudfunctions.net/carShowWalkup',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }
+    );
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      msg.style.color = '#b83535';
+      msg.textContent = result.error || 'Registration failed. Please try again.';
+      btn.disabled = false;
+      btn.textContent = 'Add Registration';
+      return;
+    }
+    msg.style.color = 'var(--accent)';
+    msg.textContent = `✓ Added car #${result.carNumber}. Form cleared for next walk-up.`;
+    btn.disabled = false;
+    btn.textContent = 'Add Registration';
+    clearWalkupForm();
+    msg.style.display = 'inline'; // re-show the success message after clear
+    msg.style.color = 'var(--accent)';
+    msg.textContent = `✓ Added car #${result.carNumber}. Form cleared for next walk-up.`;
+    setTimeout(() => { msg.style.display = 'none'; }, 6000);
+    loadRegistrations();
+    loadLeaderboard();
+  } catch(e) {
+    console.error('submitWalkup failed:', e);
+    msg.style.color = '#b83535';
+    msg.textContent = 'Network error. Please try again.';
+    btn.disabled = false;
+    btn.textContent = 'Add Registration';
+  }
+};
+
+// ── Print Pre-Numbered Forms ──────────────────────────────
+window.openPrintFormsModal = () => {
+  // Pre-fill start at next available number
+  const numbered = (regData || []).filter(r => r.carNumber);
+  const max = numbered.length ? Math.max(...numbered.map(r => r.carNumber)) : 0;
+  document.getElementById('pfStartNum').value = max + 1;
+  document.getElementById('pfStartHint').textContent =
+    max ? `Highest existing car number: #${max}` : 'No cars registered yet';
+  document.getElementById('pfCount').value = 100;
+  updatePFRangeLabel();
+  document.getElementById('pfError').style.display = 'none';
+  document.getElementById('pfStatusMsg').style.display = 'none';
+  document.getElementById('printFormsModal').classList.add('open');
+
+  // Wire change listeners (idempotent)
+  const start = document.getElementById('pfStartNum');
+  const count = document.getElementById('pfCount');
+  start.oninput = updatePFRangeLabel;
+  count.oninput = updatePFRangeLabel;
+};
+
+function updatePFRangeLabel() {
+  const start = parseInt(document.getElementById('pfStartNum').value, 10);
+  const count = parseInt(document.getElementById('pfCount').value, 10);
+  const label = document.getElementById('pfRangeLabel');
+  if (start && count && count > 0 && start > 0) {
+    const end = start + count - 1;
+    label.innerHTML = `Will generate <strong>${count}</strong> forms numbered <strong>#${start}</strong> through <strong>#${end}</strong>`;
+  } else {
+    label.textContent = 'Will generate forms #— through #—';
+  }
+}
+
+window.generateForms = async () => {
+  const start = parseInt(document.getElementById('pfStartNum').value, 10);
+  const count = parseInt(document.getElementById('pfCount').value, 10);
+  const errEl  = document.getElementById('pfError');
+  const statEl = document.getElementById('pfStatusMsg');
+  const btn    = document.getElementById('pfGenBtn');
+  errEl.style.display = 'none';
+
+  if (!start || start < 1) { errEl.textContent = 'Start number must be a positive integer.'; errEl.style.display='block'; return; }
+  if (!count || count < 1 || count > 500) { errEl.textContent = 'Count must be between 1 and 500.'; errEl.style.display='block'; return; }
+
+  // Warn if start number overlaps with existing numbers
+  const existing = (regData || []).filter(r => r.carNumber && r.carNumber >= start && r.carNumber < start + count);
+  if (existing.length) {
+    const nums = existing.map(r => '#' + r.carNumber).join(', ');
+    if (!confirm(`Warning: ${existing.length} existing registration(s) already use numbers in this range (${nums}). The PDF will still be generated, but you may end up with duplicate paper forms.\n\nGenerate anyway?`)) {
+      return;
+    }
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+  statEl.style.display = 'inline';
+  statEl.textContent = `Building PDF with ${count} forms... (this can take 10-30 seconds)`;
+
+  try {
+    const response = await fetch(
+      'https://us-central1-artdepotdistrict.cloudfunctions.net/generateCarShowForms',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startNumber: start, count: count }),
+      }
+    );
+
+    if (!response.ok) {
+      let errMsg = `PDF generation failed (status ${response.status})`;
+      try { const j = await response.json(); errMsg = j.error || errMsg; } catch {}
+      errEl.textContent = errMsg;
+      errEl.style.display = 'block';
+      statEl.style.display = 'none';
+      btn.disabled = false;
+      btn.textContent = 'Generate & Download PDF';
+      return;
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `car-show-forms-${start}-to-${start + count - 1}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    statEl.style.color = 'var(--accent)';
+    statEl.textContent = `✓ Downloaded ${count} forms.`;
+    btn.disabled = false;
+    btn.textContent = 'Generate & Download PDF';
+    setTimeout(() => closeModal('printFormsModal'), 2000);
+  } catch(e) {
+    console.error('generateForms failed:', e);
+    errEl.textContent = 'Network error during generation. Please try again.';
+    errEl.style.display = 'block';
+    statEl.style.display = 'none';
+    btn.disabled = false;
+    btn.textContent = 'Generate & Download PDF';
+  }
+};
 
 // ── FAQs ──────────────────────────────────────────────────
 let faqData = [];
