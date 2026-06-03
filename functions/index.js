@@ -489,9 +489,9 @@ exports.carShowWalkup = onRequest(
 
 
 // ── Pre-Numbered Car Show Forms (PDF generator) ───────────
-// Builds a multi-page PDF with one blank registration form per page.
-// Each form is pre-printed with a unique car number and QR code linking
-// to /vote.html?car=N for People's Choice voting.
+// Builds a multi-page PDF with TWO pages per car number:
+//   Page A: Blank registration form (for owner to fill out)
+//   Page B: Windshield card with big number + large QR (for dashboard display)
 exports.generateCarShowForms = onRequest(
   { cors: true, timeoutSeconds: 120, memory: "512MiB" },
   async (req, res) => {
@@ -512,18 +512,13 @@ exports.generateCarShowForms = onRequest(
     }
 
     try {
-      // Pre-generate all QR codes in parallel (faster than serial during PDF build)
+      // Two QR sizes per number: small for form corner, large for windshield card
       const qrPromises = [];
       for (let i = 0; i < count; i++) {
-        const carNum = startNumber + i;
+        const carNum  = startNumber + i;
         const voteUrl = `https://artdepotdistrict.com/vote.html?car=${carNum}`;
-        qrPromises.push(
-          QRCode.toBuffer(voteUrl, {
-            width: 200,
-            margin: 1,
-            color: { dark: "#1e3a5c", light: "#ffffff" },
-          })
-        );
+        qrPromises.push(QRCode.toBuffer(voteUrl, { width: 200, margin: 1, color: { dark: "#1e3a5c", light: "#ffffff" } }));
+        qrPromises.push(QRCode.toBuffer(voteUrl, { width: 600, margin: 1, color: { dark: "#1e3a5c", light: "#ffffff" } }));
       }
       const qrBuffers = await Promise.all(qrPromises);
 
@@ -542,7 +537,7 @@ exports.generateCarShowForms = onRequest(
   }
 );
 
-// ── PDF builder: one blank registration form per page ─────
+// ── PDF builder: registration form + windshield card per car number ──
 function buildCarShowFormsPDF(startNumber, count, qrBuffers) {
   return new Promise((resolve, reject) => {
     const doc    = new PDFDocument({ margin: 36, size: "LETTER" });
@@ -551,16 +546,20 @@ function buildCarShowFormsPDF(startNumber, count, qrBuffers) {
     doc.on("end",   () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    const W    = doc.page.width;   // 612
-    const H    = doc.page.height;  // 792
-    const navy = "#1e3a5c";
-    const red  = "#b83535";
-    const gray = "#6a6a6a";
+    const W    = doc.page.width;
+    const H    = doc.page.height;
+    const c    = { W, H, navy: "#1e3a5c", red: "#b83535", gray: "#6a6a6a" };
 
     for (let i = 0; i < count; i++) {
+      const carNum  = startNumber + i;
+      const qrSmall = qrBuffers[i * 2];
+      const qrLarge = qrBuffers[i * 2 + 1];
+
       if (i > 0) doc.addPage();
-      const carNum = startNumber + i;
-      drawCarShowForm(doc, carNum, qrBuffers[i], { W, H, navy, red, gray });
+      drawCarShowForm(doc, carNum, qrSmall, c);
+
+      doc.addPage();
+      drawWindshieldCard(doc, carNum, null, qrLarge, c);
     }
     doc.end();
   });
@@ -775,14 +774,13 @@ exports.generateFilledCarShowForms = onRequest(
         return res.status(404).json({ error: "No registrations with car numbers found. Run 'Assign Car Numbers' first." });
       }
 
-      // Pre-generate QR codes in parallel
-      const qrPromises = regs.map(r =>
-        QRCode.toBuffer(`https://artdepotdistrict.com/vote.html?car=${r.carNumber}`, {
-          width: 200,
-          margin: 1,
-          color: { dark: "#1e3a5c", light: "#ffffff" },
-        })
-      );
+      // Two QR sizes per car: small for form corner, large for windshield card
+      const qrPromises = [];
+      for (const r of regs) {
+        const voteUrl = `https://artdepotdistrict.com/vote.html?car=${r.carNumber}`;
+        qrPromises.push(QRCode.toBuffer(voteUrl, { width: 200, margin: 1, color: { dark: "#1e3a5c", light: "#ffffff" } }));
+        qrPromises.push(QRCode.toBuffer(voteUrl, { width: 600, margin: 1, color: { dark: "#1e3a5c", light: "#ffffff" } }));
+      }
       const qrBuffers = await Promise.all(qrPromises);
 
       const pdfBuffer = await buildFilledFormsPDF(regs, qrBuffers);
@@ -805,18 +803,111 @@ function buildFilledFormsPDF(regs, qrBuffers) {
     doc.on("end",   () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    const W    = doc.page.width;
-    const H    = doc.page.height;
-    const navy = "#1e3a5c";
-    const red  = "#b83535";
-    const gray = "#6a6a6a";
+    const W = doc.page.width;
+    const H = doc.page.height;
+    const c = { W, H, navy: "#1e3a5c", red: "#b83535", gray: "#6a6a6a" };
 
     for (let i = 0; i < regs.length; i++) {
+      const reg     = regs[i];
+      const qrSmall = qrBuffers[i * 2];
+      const qrLarge = qrBuffers[i * 2 + 1];
+
       if (i > 0) doc.addPage();
-      drawCarShowFormFilled(doc, regs[i], qrBuffers[i], { W, H, navy, red, gray });
+      drawCarShowFormFilled(doc, reg, qrSmall, c);
+
+      // Build "1966 Ford Mustang"-style vehicle line
+      const vehicleLine = [reg.vehicleYear, reg.vehicleMake, reg.vehicleModel]
+        .filter(Boolean)
+        .map(s => String(s).trim())
+        .join(" ");
+
+      doc.addPage();
+      drawWindshieldCard(doc, reg.carNumber, vehicleLine || null, qrLarge, c);
     }
     doc.end();
   });
+}
+
+
+// ── Windshield Card (page B of each car's packet) ─────────
+// Big visible car number, large scannable QR, vehicle info line.
+// If vehicleInfo is null, leaves a blank handwriting line instead (used
+// for blank pre-numbered packets where the car isn't known yet).
+function drawWindshieldCard(doc, carNum, vehicleInfo, qrBuffer, c) {
+  const { W, H, navy, red, gray } = c;
+  const left   = 36;
+  const right  = W - 36;
+  const fieldW = right - left;
+
+  // ── HEADER ────────────────────────────────────────────
+  doc.fontSize(10).font("Helvetica-Bold").fillColor(red)
+     .text("ART DEPOT DISTRICT", left, 42, { width: fieldW, align: "center" });
+  doc.fontSize(20).font("Helvetica-Bold").fillColor(navy)
+     .text("DEPOT DAYS CAR SHOW", left, 58, { width: fieldW, align: "center" });
+  doc.fontSize(10).font("Helvetica").fillColor(gray)
+     .text("Saturday, June 13, 2026  •  Covington, Tennessee", left, 84, { width: fieldW, align: "center" });
+
+  // Header divider
+  doc.moveTo(left, 108).lineTo(right, 108)
+     .strokeColor(navy).lineWidth(1.5).stroke();
+
+  // ── CAR NUMBER (HUGE, auto-sized to fit) ──────────────
+  doc.fontSize(11).font("Helvetica-Bold").fillColor(gray)
+     .text("CAR NUMBER", left, 124, { width: fieldW, align: "center" });
+
+  // Auto-fit the big number to ~80% of usable width regardless of digit count
+  const numText = `#${carNum}`;
+  const targetW = fieldW * 0.8;
+  let numFont   = 200;
+  doc.font("Helvetica-Bold").fontSize(numFont);
+  while (doc.widthOfString(numText) > targetW && numFont > 80) {
+    numFont -= 5;
+    doc.fontSize(numFont);
+  }
+  // Measure final height + width for centered placement
+  const numH = doc.heightOfString(numText);
+  const numW = doc.widthOfString(numText);
+  const numX = (W - numW) / 2;
+  doc.fillColor(red).text(numText, numX, 150);
+
+  // ── VEHICLE INFO ──────────────────────────────────────
+  let y = 340;
+  if (vehicleInfo) {
+    doc.fontSize(22).font("Helvetica-Bold").fillColor(navy)
+       .text(vehicleInfo, left, y, { width: fieldW, align: "center" });
+  } else {
+    // Blank line for handwriting on walk-up cards
+    doc.fontSize(10).font("Helvetica-Bold").fillColor(gray)
+       .text("MY VEHICLE", left, y, { width: fieldW, align: "center" });
+    // Underline 60% of page width, centered
+    const lineW = fieldW * 0.6;
+    const lineX = (W - lineW) / 2;
+    doc.moveTo(lineX, y + 32).lineTo(lineX + lineW, y + 32)
+       .strokeColor("#666666").lineWidth(0.9).stroke();
+    doc.fontSize(8).font("Helvetica-Oblique").fillColor(gray)
+       .text("(year • make • model)", left, y + 38, { width: fieldW, align: "center" });
+  }
+
+  // Mid divider
+  doc.moveTo(left, 405).lineTo(right, 405)
+     .strokeColor("#cccccc").lineWidth(0.8).stroke();
+
+  // ── VOTING CALL TO ACTION ─────────────────────────────
+  doc.fontSize(20).font("Helvetica-Bold").fillColor(red)
+     .text("VOTE FOR PEOPLE'S CHOICE", left, 422, { width: fieldW, align: "center" });
+
+  // Big centered QR code
+  const QR_SIZE = 240;
+  const qrX     = (W - QR_SIZE) / 2;
+  const qrY     = 460;
+  doc.image(qrBuffer, qrX, qrY, { width: QR_SIZE, height: QR_SIZE });
+
+  // Below QR — instructions
+  doc.fontSize(15).font("Helvetica-Bold").fillColor(navy)
+     .text("Scan with your phone camera to vote!", left, qrY + QR_SIZE + 10, { width: fieldW, align: "center" });
+
+  doc.fontSize(9).font("Helvetica").fillColor(gray)
+     .text("One vote per voter  •  Voting open Saturday, June 13, 2026, 9 AM – 2 PM CT", left, qrY + QR_SIZE + 32, { width: fieldW, align: "center" });
 }
 
 function drawCarShowFormFilled(doc, reg, qrBuffer, c) {
