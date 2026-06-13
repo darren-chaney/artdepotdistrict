@@ -1121,21 +1121,28 @@ exports.submitVote = onRequest(
         });
       }
 
-      // 2. Verify the car exists
+      // 2. Look up the car.
+      //    Pre-registered cars have a record in car_show_registrations
+      //    (numbered by carShowRegister / the admin backfill button).
+      //    WALK-UP cars handed a blank pre-printed form were never entered,
+      //    so they have NO record — but their printed number is still valid
+      //    and must be votable. So we accept any number within the printed
+      //    range (1–500, matching the blank-forms generator cap) and only
+      //    attach vehicle details when we actually have a registration.
+      if (carNumber > 500) {
+        return res.status(404).json({
+          error: `Car #${carNumber} isn't a valid number. Please double-check.`,
+          code:  "car-not-found",
+        });
+      }
+
       const carQuery = await db.collection("car_show_registrations")
         .where("carNumber", "==", carNumber)
         .limit(1)
         .get();
 
-      if (carQuery.empty) {
-        return res.status(404).json({
-          error: `Car #${carNumber} doesn't exist. Please double-check the number.`,
-          code:  "car-not-found",
-        });
-      }
-
-      const carDoc  = carQuery.docs[0];
-      const carData = carDoc.data();
+      // null for walk-ups with no registration record — still votable
+      const carData = carQuery.empty ? null : carQuery.docs[0].data();
 
       // 3. IP rate limit: max 3 votes per IP per hour as a safety net.
       // This catches a casual ballot-stuffer trying to vote multiple times
@@ -1176,12 +1183,12 @@ exports.submitVote = onRequest(
         success:   true,
         voteId:    voteRef.id,
         carNumber: carNumber,
-        vehicle: {
+        vehicle: carData ? {
           year:  carData.vehicleYear,
           make:  carData.vehicleMake,
           model: carData.vehicleModel,
           color: carData.vehicleColor,
-        },
+        } : {},
       });
     } catch(e) {
       console.error("submitVote failed:", e);
