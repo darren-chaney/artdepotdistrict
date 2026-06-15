@@ -365,6 +365,20 @@ exports.carShowRegister = onRequest(
     }
 
     try {
+      // Registration close switch. Lives in the depot_days doc as
+      // carShowRegOpen. Absent or true = open (preserves prior behavior);
+      // set it to false to close the PUBLIC online form. Admin walk-up
+      // entry (carShowWalkup) is a separate function and is NOT affected.
+      const year   = new Date().getFullYear().toString();
+      const ddSnap = await db.doc(`depot_days/${year}`).get();
+      const dd     = ddSnap.exists ? ddSnap.data() : {};
+      if (dd.carShowRegOpen === false) {
+        return res.status(403).json({
+          error: "Car show registration is now closed. Come see us at the show to register in person!",
+          code:  "registration-closed",
+        });
+      }
+
       const result = await db.runTransaction(async (tx) => {
         // Find current max carNumber. orderBy excludes docs without the field,
         // so this returns the highest existing number (or empty if none yet).
