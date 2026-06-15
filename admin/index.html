@@ -178,6 +178,27 @@
         <span id="csSaveMsg" style="margin-left:16px;font-size:.85rem;color:var(--accent);display:none">Saved!</span>
       </div>
 
+      <!-- Online Registration Open/Closed -->
+      <div class="admin-card" style="margin-bottom:32px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+          <div>
+            <h4 style="font-size:1rem;margin-bottom:4px">📝 Online Registration</h4>
+            <p style="font-size:.85rem;color:var(--text-muted);margin:0">Public pre-registration form: <a href="/car-show.html" target="_blank" style="color:var(--accent)">/car-show.html</a></p>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span id="regStatusBadge" class="admin-badge badge-draft" style="font-size:.78rem">Registration Closed</span>
+          </div>
+        </div>
+        <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:16px">
+          Turns the public online registration form on or off. Day-of walk-up entry (below) is separate and always available to you here in admin.
+        </p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary" onclick="openReg()" id="openRegBtn">Open Registration</button>
+          <button class="btn btn-ghost" onclick="closeReg()" id="closeRegBtn" style="display:none">Close Registration</button>
+          <span id="regSaveMsg" style="font-size:.85rem;color:var(--accent);display:none">Saved!</span>
+        </div>
+      </div>
+
       <!-- People's Choice Voting -->
       <div class="admin-card" style="margin-bottom:32px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:20px">
@@ -1157,6 +1178,7 @@ document.querySelectorAll('.admin-nav-item').forEach(item => {
     if (item.dataset.panel === 'registrations') {
       loadRegistrations();
       loadCarShowContent();
+      loadRegSettings();
       loadPCSettings();
       loadLeaderboard();
       startPCAutoRefresh();
@@ -1502,6 +1524,70 @@ window.saveCarShowContent = async () => {
   const msg = document.getElementById('csSaveMsg');
   msg.style.display = 'inline';
   setTimeout(() => msg.style.display = 'none', 2500);
+};
+
+// ── Online Registration Open/Closed ───────────────────────
+// Writes carShowRegOpen to depot_days/{year}; the carShowRegister
+// Cloud Function reads this flag and rejects submissions when false.
+// Absent flag = treated as open (matches the function's default).
+let regOpen = false;
+
+async function loadRegSettings() {
+  const year = new Date().getFullYear().toString();
+  const snap = await getDoc(doc(db,'depot_days',year));
+  const dd   = snap.exists() ? snap.data() : {};
+  // Open unless explicitly false, mirroring the Cloud Function's logic.
+  regOpen = dd.carShowRegOpen !== false;
+  updateRegStatusUI();
+}
+
+function updateRegStatusUI() {
+  const badge    = document.getElementById('regStatusBadge');
+  const openBtn  = document.getElementById('openRegBtn');
+  const closeBtn = document.getElementById('closeRegBtn');
+  if (regOpen) {
+    badge.textContent   = '● Registration Open';
+    badge.className     = 'admin-badge badge-published';
+    badge.style.cssText = 'font-size:.78rem;background:#1a5f6e;color:#fff';
+    openBtn.style.display  = 'none';
+    closeBtn.style.display = 'inline-flex';
+  } else {
+    badge.textContent   = 'Registration Closed';
+    badge.className     = 'admin-badge badge-draft';
+    badge.style.cssText = 'font-size:.78rem';
+    openBtn.style.display  = 'inline-flex';
+    closeBtn.style.display = 'none';
+  }
+}
+
+function flashRegSaved() {
+  const msg = document.getElementById('regSaveMsg');
+  msg.style.display = 'inline';
+  setTimeout(() => msg.style.display = 'none', 2500);
+}
+
+window.openReg = async () => {
+  if (!confirm('Open online registration? The public form will start accepting new entries.')) return;
+  const year = new Date().getFullYear().toString();
+  await setDoc(doc(db,'depot_days',year), {
+    carShowRegOpen: true,
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+  regOpen = true;
+  updateRegStatusUI();
+  flashRegSaved();
+};
+
+window.closeReg = async () => {
+  if (!confirm('Close online registration? Visitors will no longer be able to register online. You can reopen it anytime, and walk-up entry still works in admin.')) return;
+  const year = new Date().getFullYear().toString();
+  await setDoc(doc(db,'depot_days',year), {
+    carShowRegOpen: false,
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+  regOpen = false;
+  updateRegStatusUI();
+  flashRegSaved();
 };
 
 // ── People's Choice Voting ────────────────────────────────

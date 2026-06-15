@@ -34,7 +34,14 @@
       <span class="eyebrow">Pre-Registration</span>
       <h2 style="font-size:2rem;margin-bottom:8px">Register Your Vehicle</h2>
       <div class="divider"></div>
-      <p style="margin-bottom:40px">Fill out the form below to pre-register. No payment required — registration is free. You'll receive your car number once submitted.</p>
+      <p style="margin-bottom:40px" id="regIntro">Fill out the form below to pre-register. No payment required — registration is free. You'll receive your car number once submitted.</p>
+
+      <!-- Registration Closed Notice -->
+      <div class="form-success" id="regClosed" style="display:none">
+        <h3>Online Registration Is Closed</h3>
+        <p style="margin-top:12px">Online pre-registration for the Depot Days Car Show isn't open right now. If the show is underway, come find us on-site — we'll get you registered in person.</p>
+        <p style="margin-top:12px;font-size:.9rem">Questions? <a href="/contact.html" style="color:var(--accent)">Contact us</a></p>
+      </div>
 
       <!-- Success Message -->
       <div class="form-success" id="formSuccess">
@@ -190,6 +197,16 @@
     if (dd.carShowPoster) {
       document.getElementById('carShowPoster').src = dd.carShowPoster;
       document.getElementById('posterWrap').style.display = 'block';
+    }
+    // Registration on/off — controlled from Admin → Car Show.
+    // Open unless explicitly false (matches the Cloud Function default).
+    if (dd.carShowRegOpen === false) {
+      const formEl = document.getElementById('carShowForm');
+      if (formEl) formEl.style.display = 'none';
+      const introEl = document.getElementById('regIntro');
+      if (introEl) introEl.style.display = 'none';
+      const closedEl = document.getElementById('regClosed');
+      if (closedEl) closedEl.style.display = 'block';
     }
   });
 
